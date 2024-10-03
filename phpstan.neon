@@ -1,0 +1,9 @@
+parameters:
+  level: 8
+  ignoreErrors:
+  paths:
+    - src
+  fileExtensions:
+    - php
+  parallel:
+    maximumNumberOfProcesses: 1

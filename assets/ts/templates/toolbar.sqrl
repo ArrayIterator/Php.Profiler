@@ -1,0 +1,113 @@
+<waterfall-container>
+    <waterfall-header>
+        <waterfall-bar>
+            <waterfall-icon>{{ "bug" | icon | safe }}</waterfall-icon>
+            <waterfall-info>
+                <waterfall-item-duration title="Total Duration: {{ json.system_wide.duration | humanTime }}">
+                    <waterfall-name>{{ "clock" | icon | safe }}</waterfall-name>
+                    <waterfall-value>{{ json['system_wide'].duration | humanTime }}</waterfall-value>
+                </waterfall-item-duration >
+                <waterfall-item-memory title="Peak Memory: {{ json.system_wide.peak_memory | sizeFormat }}">
+                    <waterfall-name>{{ "cpu" | icon | safe }}</waterfall-name>
+                    <waterfall-value>{{ json.system_wide.peak_memory | sizeFormat }}</waterfall-value>
+                </waterfall-item-memory >
+            </waterfall-info>
+            <waterfall-action-tabs>
+                <waterfall-action-tab data-tab="benchmark" title="Benchmark" data-status="active">
+                    <waterfall-name>Benchmark</waterfall-name>
+                    <waterfall-icon>{{ "rocket" | icon | safe }}</waterfall-icon>
+                </waterfall-action-tab>
+                <waterfall-action-tab data-tab="labs" title="Labs">
+                    <waterfall-name>Labs</waterfall-name>
+                    <waterfall-icon>{{ "beaker" | icon | safe }}</waterfall-icon>
+                </waterfall-action-tab>
+                <waterfall-action-tab data-tab="json" title="Source code">
+                    <waterfall-name>Source</waterfall-name>
+                    <waterfall-icon>{{ "code" | icon | safe }}</waterfall-icon>
+                </waterfall-action-tab>
+            </waterfall-action-tabs>
+            <waterfall-actions>
+                <waterfall-action data-action="preference"  data-target="waterfall-preference" title="Open Preferences">
+                    <waterfall-icon>{{ "cog" | icon | safe }}</waterfall-icon>
+                </waterfall-action>
+                <waterfall-color-mode data-color-mode="light" title="Switch to light mode">
+                    <waterfall-icon>{{ "sun" | icon | safe }}</waterfall-icon>
+                </waterfall-color-mode>
+                <waterfall-color-mode data-color-mode="dark" title="Switch to dark mode">
+                    <waterfall-icon>{{ "moon" | icon | safe }}</waterfall-icon>
+                </waterfall-color-mode>
+                <waterfall-action data-action="minimize" data-target="waterfall" title="Restore">
+                    <waterfall-icon>{{ "minimize" | icon | safe }}</waterfall-icon>
+                </waterfall-action>
+                <waterfall-action data-action="maximize" data-target="waterfall" title="Maximize">
+                    <waterfall-icon>{{ "maximize" | icon | safe }}</waterfall-icon>
+                </waterfall-action>
+                <waterfall-action data-action="opened" data-target="waterfall" title="Expand">
+                    <waterfall-icon>{{ "chevron_up" | icon | safe }}</waterfall-icon>
+                </waterfall-action>
+                <waterfall-action data-action="closed" data-target="waterfall" title="Close">
+                    <waterfall-icon>{{ "close" | icon | safe }}</waterfall-icon>
+                </waterfall-action>
+            </waterfall-actions>
+        </waterfall-bar>
+        <waterfall-filters>
+            <waterfall-actions>
+                <waterfall-filter-list>
+                    <waterfall-action data-filter="all" data-status="active">
+                        <waterfall-icon>{{ "filter" | icon | safe }}</waterfall-icon>
+                        <waterfall-name>All</waterfall-name>
+                    </waterfall-action>
+                    <waterfall-action data-filter="slow">
+                        <waterfall-icon>{{ "shield_exclamation" | icon | safe }}</waterfall-icon>
+                        <waterfall-name data-waterfall="item-name">Slow</waterfall-name>
+                    </waterfall-action>
+                    <waterfall-action data-filter="fast">
+                        <waterfall-icon>{{ "bolt" | icon | safe }}</waterfall-icon>
+                        <waterfall-name>Fast</waterfall-name>
+                    </waterfall-action>
+                    <waterfall-action data-filter="average">
+                    <waterfall-icon>{{ "hourglass" | icon | safe }}</waterfall-icon>
+                    <waterfall-name>Average</waterfall-name>
+                </waterfall-action>
+                </waterfall-filter-list>
+                <waterfall-info data-waterfall="export-import">
+                    <waterfall-action data-action="import" title="Import Json" data-command-action="import">
+                        <waterfall-icon>{{ "arrow_up_tray" | icon | safe }}</waterfall-icon>
+                    </waterfall-action>
+                    <waterfall-action data-action="export" title="Export" data-command-action="download">
+                        <waterfall-icon>{{ "arrow_down_tray" | icon | safe }}</waterfall-icon>
+                    </waterfall-action>
+                    <waterfall-action data-action="restore" title="Restore" data-command-action="restore">
+                        <waterfall-icon>{{ "refresh" | icon | safe }}</waterfall-icon>
+                    </waterfall-action>
+                </waterfall-info>
+                <waterfall-message></waterfall-message>
+                <waterfall-import-info>
+                    <waterfall-info>
+                        <strong>Maximum Records</strong>
+                        <waterfall-max-records></waterfall-max-records>
+                    </waterfall-info>
+                    <waterfall-info>
+                        <strong>Maximum Size</strong>
+                        <waterfall-max-size></waterfall-max-size>
+                    </waterfall-info>
+                </waterfall-import-info>
+            </waterfall-actions>
+            <waterfall-search data-status="active" data-filter="all">
+                <label>
+                    {{ "filter" | icon | safe }}
+                    <input type="search" aria-label="search" placeholder="Filter" maxlength="255">
+                </label>
+                <waterfall-aggregators title="Use (Shift + Mousewheel) to scroll"></waterfall-aggregators>
+            </waterfall-search>
+        </waterfall-filters>
+    </waterfall-header>
+    <waterfall-content>
+        <waterfall-tab data-tab="benchmark" data-status="active"></waterfall-tab>
+        <!-- <div data-waterfall="tab" data-tab="info"></div> -->
+        <waterfall-tab data-tab="json"></waterfall-tab>
+        <waterfall-drag-import>
+            Drag and drop your JSON file here
+        </waterfall-drag-import>
+    </waterfall-content>
+</waterfall-container>

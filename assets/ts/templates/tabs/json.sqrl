@@ -1,0 +1,35 @@
+<waterfall-filters>
+    <waterfall-actions>
+        <waterfall-info data-waterfall="export-import">
+            <waterfall-action data-action="format" title="Minify JSON" data-command-action="minify">
+                <waterfall-icon>{{ "curly_bracket" | icon | safe }}</waterfall-icon>
+            </waterfall-action>
+            <waterfall-action data-action="import" title="Import Json" data-command-action="import">
+                <waterfall-icon>{{ "arrow_up_tray" | icon | safe }}</waterfall-icon>
+            </waterfall-action>
+            <waterfall-action data-action="export" title="Export" data-command-action="download">
+                <waterfall-icon>{{ "arrow_down_tray" | icon | safe }}</waterfall-icon>
+            </waterfall-action>
+            <waterfall-action data-action="restore" title="Restore" data-command-action="restore">
+                <waterfall-icon>{{ "refresh" | icon | safe }}</waterfall-icon>
+            </waterfall-action>
+        </waterfall-info>
+        <waterfall-message></waterfall-message>
+        <waterfall-import-info>
+            <waterfall-info>
+                <strong>Maximum Records</strong>
+                <waterfall-max-records></waterfall-max-records>
+            </waterfall-info>
+            <waterfall-info>
+                <strong>Maximum Size</strong>
+                <waterfall-max-size></waterfall-max-size>
+            </waterfall-info>
+        </waterfall-import-info>
+        <waterfall-search>
+            <waterfall-aggregators></waterfall-aggregators>
+        </waterfall-search>
+    </waterfall-actions>
+</waterfall-filters>
+<waterfall-tab-content>
+    <pre></pre>
+</waterfall-tab-content>

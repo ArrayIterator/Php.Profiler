@@ -1,0 +1,10 @@
+<waterfall-preference data-status="closed">
+    <waterfall-header>
+        <!-- add close waterfall preference button -->
+        <waterfall-actions>
+            <waterfall-action data-action="close" data-target="waterfall-preference" title="Close">
+                <waterfall-icon>{{ "close" | icon | safe }}</waterfall-icon>
+            </waterfall-action>
+        </waterfall-actions>
+    </waterfall-header>
+</waterfall-preference>

@@ -1,0 +1,75 @@
+@import "../variables";
+
+// -----------------------------------------------------------------
+// ROOT
+// -----------------------------------------------------------------
+:root {
+    --waterfall-bg-color-base: #fff;
+    //--waterfall-color-base: #2b2b2b;
+    --waterfall-color-base: #282828;
+    --waterfall-header-bg-color: #edf2f9;
+    --waterfall-header-text-color: #4d4d4d;
+    --waterfall-header-border-color: #cfe3ff;
+    --waterfall-placeholder-color: #999;
+    --waterfall-input-bg-color: #edf2fa;
+    --waterfall-input-border-color: #e3e9f3;
+    --waterfall-input-focus-border-color: #c5dbfa;
+    --waterfall-input-focus-bg-color: transparent;
+    --waterfall-action-hover-color: rgba(0, 0, 0, .05);
+    --waterfall-action-filter-hover-color: rgba(0, 0, 0, .05);
+    --waterfall-action-hover-text-color: #1a1a1a;
+    --waterfall-z-index: #{$z-index-waterfall};
+    --waterfall-font-size: 14px;
+    --waterfall-line-height: 1.2;
+    --waterfall-header-tab-active-color: #006eed;
+    --waterfall-font-family: #{$font-family};
+    --waterfall-code-font-family: #{$mono-family};
+    --waterfall-header-height: #{$header-height};
+    --waterfall-scroll-bar-bg-color: inherit;
+    --waterfall-scroll-bar-thumb-color: inherit;
+    --waterfall-record-item-odd-color: #F5F7FB;
+    --waterfall-record-item-hover-color: #f0f0f0;
+    --waterfall-bg-color-success: #7CBC5A;
+    --waterfall-bg-color-success-text: #fff;
+    --waterfall-bg-color-warning: #cd8602;
+    --waterfall-bg-color-warning-text: #fff;
+    --waterfall-bg-color-error: #FF6347;
+    --waterfall-bg-color-error-text: #fff;
+    --waterfall-bg-color-info: #3f8cef;
+    --waterfall-bg-color-info-text: #fff;
+    --waterfall-bg-color-notice: #dcbb09;
+    --waterfall-bg-color-notice-text: #fff;
+    --waterfall-record-min-width: 50px;
+    --waterfall-record-name-width: 200px;
+    --waterfall-aggregator-border-color: #cfcfcf;
+    --waterfall-aggregator-active-border-color: #cfe1f9;
+    --waterfall-aggregator-active-color: #cfe1f9;
+    --waterfall-aggregator-active-text-color: #001e46;
+}
+:root:has(waterfall[data-color-mode="dark"]) {
+    //--waterfall-bg-color-base: #2b2b2b;
+    --waterfall-bg-color-base: #282828;
+    --waterfall-header-bg-color: #3c3c3c;
+    --waterfall-action-hover-color: #4d4d4d;
+    --waterfall-action-filter-hover-color: rgba(255, 255,255, .1);
+    --waterfall-header-text-color: #e5e5e5;
+    --waterfall-action-hover-text-color: #f1f1f1;
+    --waterfall-header-border-color: #5e5e5e;
+    --waterfall-color-base: #f1f1f1;
+    --waterfall-input-bg-color: rgba(0, 0, 0, .2);
+    --waterfall-input-focus-bg-color: rgba(0, 0, 0, .3);
+    --waterfall-input-border-color: rgba(0, 0, 0, .3);
+    --waterfall-input-focus-border-color: rgba(0, 0, 0, .5);
+    --waterfall-header-tab-active-color: #76acf4;
+    --waterfall-scroll-bar-bg-color: #4d4d4d;
+    --waterfall-scroll-bar-thumb-color: #6b6b6b;
+    --waterfall-record-item-odd-color: #1F1F1F;
+    --waterfall-record-item-hover-color: #3c3c3c;
+    --waterfall-aggregator-active-color: #004973;
+    --waterfall-aggregator-active-border-color: #004973;
+    --waterfall-aggregator-border-color: #7f7f7f;
+    --waterfall-aggregator-active-text-color: #bee5fb;
+}
+// -----------------------------------------------------------------
+// END ROOT
+// -----------------------------------------------------------------

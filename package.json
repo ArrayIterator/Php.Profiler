@@ -1,0 +1,43 @@
+{
+    "name": "pentagonal-whmcs",
+    "version": "1.0.0",
+    "description": "Pentagonal WHMCS addon",
+    "scripts": {
+        "compile": "webpack --mode=production --node-env=production --progress",
+        "watch": "webpack serve --mode=development --node-env=development --progress"
+    },
+    "config": {
+        "engines": {
+            "node": ">=20"
+        }
+    },
+    "devDependencies": {
+        "@babel/preset-env": "^7.25.4",
+        "@babel/preset-typescript": "^7.24.7",
+        "@types/node": "^22.7.3",
+        "@types/webpack": "^5.28.5",
+        "@types/webpack-env": "^1.18.5",
+        "autoprefixer": "^10.4.20",
+        "babel-loader": "^9.2.1",
+        "css-loader": "^7.1.2",
+        "css-minimizer-webpack-plugin": "^7.0.0",
+        "mini-css-extract-plugin": "^2.9.1",
+        "postcss-import": "^16.1.0",
+        "postcss-loader": "^8.1.1",
+        "postcss-preset-env": "^9.6.0",
+        "sass": "^1.78.0",
+        "sass-loader": "^14.2.1",
+        "squirrelly": "^9.1.0",
+        "style-loader": "^4.0.0",
+        "terser-webpack-plugin": "^5.3.10",
+        "ts-loader": "^9.5.1",
+        "typescript": "^5.6.2",
+        "typescript-eslint": "^8.5.0",
+        "webpack": "^5.94.0",
+        "webpack-cli": "^5.1.4",
+        "webpack-dev-server": "^5.1.0"
+    },
+    "dependencies": {
+        "highcharts": "^11.4.8"
+    }
+}

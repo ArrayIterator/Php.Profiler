@@ -1,0 +1,23 @@
+{
+    "compilerOptions": {
+        "baseUrl": "./assets",
+        "noImplicitAny": true,
+        "target": "ES6",
+        "module": "ES2020",
+        "moduleResolution": "Bundler",
+        "allowSyntheticDefaultImports": true,
+        "lib": [
+            "ESNext",
+            "dom",
+        ],
+        // Other configuration...
+        "types": [
+            "node",
+            "webpack-env"
+        ],
+        "typeRoots": [
+            "./assets/ts/types/declarations.d.ts",
+            "./node_modules/@types"
+        ]
+    }
+}

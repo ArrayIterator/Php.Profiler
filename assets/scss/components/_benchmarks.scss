@@ -1,0 +1,251 @@
+@import "../mixins";
+@import "../variables";
+
+// -----------------------------------------------------------------
+// BENCHMARKS
+// -----------------------------------------------------------------
+
+// SEARCH
+waterfall-search {
+    & {
+        z-index: 90;
+        padding: calc(var(--waterfall-font-size) * .4) calc(var(--waterfall-font-size) * .6); // pl+pr = (.3 * 2 of action)
+        border-bottom: 1px solid var(--waterfall-header-border-color);
+
+    }
+
+    &:not([data-status="active"]) {
+        display: none;
+    }
+
+    label {
+        display: flex;
+        align-items: center;
+        position: relative;
+    }
+
+    svg {
+        position: absolute;
+        width: var(--waterfall-font-size);
+        height: var(--waterfall-font-size);
+        left: calc(var(--waterfall-font-size) / 2);
+    }
+
+    // INPUT
+    input[type="search"] {
+        & {
+            width: 200px;
+            background-color: var(--waterfall-input-bg-color);
+            color: var(--waterfall-color-base);
+            border: 1px solid var(--waterfall-input-border-color);
+            border-radius: calc(var(--waterfall-font-size) * 1.75);
+            font-size: calc(var(--waterfall-font-size) / 100 * 80);
+            padding: 5px 1em 5px calc(var(--waterfall-font-size) * 2);
+            outline: none;
+            height: calc(var(--waterfall-font-size) * 1.75);
+            box-shadow: none;
+        }
+
+        &::placeholder {
+            color: var(--waterfall-placeholder-color);
+        }
+
+        &:focus {
+            outline: none;
+            background-color: var(--waterfall-input-focus-bg-color);
+            border-color: var(--waterfall-input-focus-border-color);
+        }
+    }
+    waterfall-aggregators {
+        & {
+            padding: 0 calc(var(--waterfall-font-size) * .6) 0 0;
+            margin-left: calc(var(--waterfall-font-size) * .6);
+            white-space: nowrap;
+            overflow: auto;
+            scroll-behavior: smooth;
+            touch-action: pan-x;
+            // make mouse scroll horizontal
+            scrollbar-width: none;
+        }
+        record-aggregator {
+            & {
+                cursor: default;
+                user-select: none;
+                display: inline-block;
+                margin: calc(var(--waterfall-font-size) * .15);
+                color: var(--waterfall-color-base);
+                padding: calc(var(--waterfall-font-size) * .2) calc(var(--waterfall-font-size) * .4);
+                border-radius: calc(var(--waterfall-font-size) * .2);
+                border: 1px solid var(--waterfall-aggregator-border-color);
+            }
+            &[data-status="active"] {
+                border: 1px solid var(--waterfall-aggregator-active-border-color);
+                background-color: var(--waterfall-aggregator-active-color);
+                color: var(--waterfall-aggregator-active-text-color);
+            }
+            &:not([data-status="active"]):hover {
+                color: var(--waterfall-color-hover);
+            }
+        }
+    }
+}
+
+waterfall {
+    &[data-tab-mode="benchmark"] {
+        waterfall-container {
+            > waterfall-header {
+                flex: 0 0 auto;
+            }
+        }
+        waterfall-search {
+            align-items: flex-start;
+        }
+        waterfall-tab-header {
+            border-bottom: 1px solid var(--waterfall-header-border-color);
+            font-size: calc(var(--waterfall-font-size) * .9);
+        }
+
+        waterfall-tab-footer {
+            flex: 0 1 auto;
+            border-top: 1px solid var(--waterfall-header-border-color);
+
+            waterfall-item {
+                waterfall-name,
+                waterfall-value {
+                    padding: calc(var(--waterfall-font-size) * .6) calc(var(--waterfall-font-size) * .3);
+                }
+
+                &:not(:first-child)::before {
+                    @include separator-left;
+                }
+            }
+        }
+
+        waterfall-tab-header,
+        record-item {
+            & {
+                @include flex-row;
+                font-size: calc(var(--waterfall-font-size) * .85);
+                background-color: var(--waterfall-bg-color-base);
+            }
+
+            &:not(waterfall-tab-header):nth-child(odd) {
+                background-color: var(--waterfall-record-item-odd-color);
+            }
+
+            &:not(waterfall-tab-header):hover {
+                background-color: var(--waterfall-record-item-hover-color);
+            }
+
+            > * {
+                @include flex-row-center;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                position: relative;
+                padding: calc(var(--waterfall-font-size) * .3) calc(var(--waterfall-font-size) * .6);
+
+                &:not(record-item-waterfal) {
+                    border-right: 1px solid var(--waterfall-header-border-color);
+
+                    &::after {
+                        content: "";
+                        display: block;
+                        position: absolute;
+                        right: 0;
+                        top: 0;
+                        bottom: 0;
+                        width: 2px;
+                        background-color: transparent;
+                        cursor: ew-resize;
+                    }
+                }
+            }
+        }
+        waterfall-tab-header {
+            background-color: var(--waterfall-header-bg-color);
+        }
+
+        record-item-name {
+            flex: 0 0 var(--waterfall-record-name-width);
+            width: var(--waterfall-record-name-width);
+        }
+
+        record-item-group {
+            flex: 0 0 var(--waterfall-record-group-width);
+            width: var(--waterfall-record-group-width);
+        }
+
+        record-item-duration {
+            flex: 0 0 var(--waterfall-record-duration-width);
+            width: var(--waterfall-record-duration-width);
+        }
+
+        record-item-memory {
+            flex: 0 0 var(--waterfall-record-memory-width);
+            width: var(--waterfall-record-memory-width);
+        }
+
+        record-item-waterfall {
+            flex: 0 1 100%;
+        }
+
+        record-bar {
+            & {
+                display: flex;
+                min-width: .25%;
+                border-radius: var(--waterfall-font-size);
+                position: relative;
+                height: calc(var(--waterfall-font-size) / 2);
+                width: 100%;
+                background-color: var(--waterfall-bg-color-info);
+            }
+        }
+
+        [data-severity="0"] record-bar {
+            background-color: var(--waterfall-bg-color-success);
+        }
+        [data-severity="6"] record-bar {
+            background-color: var(--waterfall-bg-color-info);
+        }
+        [data-severity="5"] record-bar {
+            background-color: var(--waterfall-bg-color-notice);
+        }
+        [data-severity="3"] record-bar {
+            background-color: var(--waterfall-bg-color-warning);
+        }
+        [data-severity="1"] record-bar {
+            background-color: var(--waterfall-bg-color-error);
+        }
+
+        @media screen and (max-width: 640px) {
+            waterfall-search {
+                & {
+                    flex-direction: column;
+                    align-items: flex-start;
+                    flex: 0 0 100%;
+                }
+                waterfall-aggregators {
+                    padding: calc(var(--waterfall-font-size) * .3) 0;
+                    margin-left: 0;
+                }
+                label {
+                    width: 100%;
+                    margin-bottom: calc(var(--waterfall-font-size) * .3);
+                }
+                input[type="search"] {
+                    width: 100%;
+                }
+            }
+        }
+    }
+    waterfall-record-empty {
+        @include flex-column-center;
+        flex: 0 0 100%;
+        align-items: center;
+    }
+}
+
+// -----------------------------------------------------------------
+// END BENCHMARKS
+// -----------------------------------------------------------------

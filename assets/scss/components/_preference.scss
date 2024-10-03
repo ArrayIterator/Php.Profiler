@@ -1,0 +1,27 @@
+@import "../variables";
+@import "../mixins";
+
+// -----------------------------------------------------------------
+// START PREFERENCE
+// -----------------------------------------------------------------
+waterfall-preference {
+    @include flex-column;
+    z-index: #{$z-index-preference};
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    top: var(--waterfall-header-height);
+    left: 0;
+    width: 100%;
+    height: 0;
+    background-color: var(--waterfall-bg-color-base);
+    transition: opacity ease .1s, visibility ease .1s;
+    &[data-status="active"] {
+        visibility: visible;
+        opacity: 1;
+        height: calc(100% - var(--waterfall-header-height));
+    }
+}
+// -----------------------------------------------------------------
+// END PREFERENCE
+// -----------------------------------------------------------------
