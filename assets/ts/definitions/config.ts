@@ -22,12 +22,12 @@ export const config_color_mode = 'color-mode';
 export const config_max_records = 'max-records';
 export const config_max_size = 'max-size';
 export const config_prettify = 'prettify';
-export const color_mode_list : Array<ColorModeTypes> = [
+export const color_mode_list: Array<ColorModeTypes> = [
     'light',
     'dark'
 ];
 
-export const action_list : Array<
+export const action_list: Array<
     ActionTypes
 > = [
     'closed',
@@ -36,7 +36,7 @@ export const action_list : Array<
     'maximize'
 ];
 
-export const tab_list : Array<TabListTypes> = [
+export const tab_list: Array<TabListTypes> = [
     'benchmark',
     'labs',
     'json'
@@ -51,11 +51,11 @@ const is_mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Operas\+Mi
     window.navigator.userAgent
 );
 
-export const severity_list : {
+export const severity_list: {
     slow: Array<number>,
     average: Array<number>,
     fast: Array<number>,
-    [p: string] : Array<number>
+    [p: string]: Array<number>
 } = {
     slow: [
         1,
@@ -71,12 +71,12 @@ export const severity_list : {
     ],
 };
 
-export const benchmark_allowed_resize_tag_names : {
-    [p: string] : string
+export const benchmark_allowed_resize_tag_names: {
+    [p: string]: string
 } = {
-    'record-item-name' :'--waterfall-record-name-width',
-    'record-item-group' : '--waterfall-record-group-width',
-    'record-item-duration' : '--waterfall-record-duration-width',
+    'record-item-name': '--waterfall-record-name-width',
+    'record-item-group': '--waterfall-record-group-width',
+    'record-item-duration': '--waterfall-record-duration-width',
     'record-item-memory': '--waterfall-record-memory-width',
 }
 export const default_benchmark_width = {
@@ -90,8 +90,8 @@ export const default_benchmark_width = {
 /**
  * Variables - to globally store variables
  */
-let configurations : {
-    [p: string] : any
+let configurations: {
+    [p: string]: any
 } = {};
 
 try {
@@ -156,6 +156,7 @@ ConfigObject.prototype.get = function get(key: ConfigParams) {
     }
     return null;
 }
+
 ConfigObject.prototype.set = function set(key: ConfigParams, value: any) {
     if (!is_string(key)) {
         return;
@@ -213,7 +214,7 @@ ConfigObject.prototype[Symbol('iterator')] = function* () {
 }
 
 // @ts-expect-error ignore
-export const Config : ConfigObject = new ConfigObject();
+export const Config: ConfigObject = new ConfigObject();
 export default Config;
 
 Object.freeze(Config);

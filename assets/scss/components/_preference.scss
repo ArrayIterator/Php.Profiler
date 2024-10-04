@@ -16,12 +16,14 @@ waterfall-preference {
     height: 0;
     background-color: var(--waterfall-bg-color-base);
     transition: opacity ease .1s, visibility ease .1s;
+
     &[data-status="active"] {
         visibility: visible;
         opacity: 1;
         height: calc(100% - var(--waterfall-header-height));
     }
 }
+
 // -----------------------------------------------------------------
 // END PREFERENCE
 // -----------------------------------------------------------------

@@ -56,6 +56,7 @@ waterfall-search {
             border-color: var(--waterfall-input-focus-border-color);
         }
     }
+
     waterfall-aggregators {
         & {
             padding: 0 calc(var(--waterfall-font-size) * .6) 0 0;
@@ -67,6 +68,7 @@ waterfall-search {
             // make mouse scroll horizontal
             scrollbar-width: none;
         }
+
         record-aggregator {
             & {
                 cursor: default;
@@ -78,11 +80,13 @@ waterfall-search {
                 border-radius: calc(var(--waterfall-font-size) * .2);
                 border: 1px solid var(--waterfall-aggregator-border-color);
             }
+
             &[data-status="active"] {
                 border: 1px solid var(--waterfall-aggregator-active-border-color);
                 background-color: var(--waterfall-aggregator-active-color);
                 color: var(--waterfall-aggregator-active-text-color);
             }
+
             &:not([data-status="active"]):hover {
                 color: var(--waterfall-color-hover);
             }
@@ -97,9 +101,11 @@ waterfall {
                 flex: 0 0 auto;
             }
         }
+
         waterfall-search {
             align-items: flex-start;
         }
+
         waterfall-tab-header {
             border-bottom: 1px solid var(--waterfall-header-border-color);
             font-size: calc(var(--waterfall-font-size) * .9);
@@ -162,6 +168,7 @@ waterfall {
                 }
             }
         }
+
         waterfall-tab-header {
             background-color: var(--waterfall-header-bg-color);
         }
@@ -205,15 +212,19 @@ waterfall {
         [data-severity="0"] record-bar {
             background-color: var(--waterfall-bg-color-success);
         }
+
         [data-severity="6"] record-bar {
             background-color: var(--waterfall-bg-color-info);
         }
+
         [data-severity="5"] record-bar {
             background-color: var(--waterfall-bg-color-notice);
         }
+
         [data-severity="3"] record-bar {
             background-color: var(--waterfall-bg-color-warning);
         }
+
         [data-severity="1"] record-bar {
             background-color: var(--waterfall-bg-color-error);
         }
@@ -225,20 +236,24 @@ waterfall {
                     align-items: flex-start;
                     flex: 0 0 100%;
                 }
+
                 waterfall-aggregators {
                     padding: calc(var(--waterfall-font-size) * .3) 0;
                     margin-left: 0;
                 }
+
                 label {
                     width: 100%;
                     margin-bottom: calc(var(--waterfall-font-size) * .3);
                 }
+
                 input[type="search"] {
                     width: 100%;
                 }
             }
         }
     }
+
     waterfall-record-empty {
         @include flex-column-center;
         flex: 0 0 100%;

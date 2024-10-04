@@ -28,22 +28,18 @@ let benchmark_record_file_size = max_benchmark_file_size;
 let benchmark_max_records = max_benchmark_records;
 let prettify: boolean = true;
 
+/**
+ * Set max record file size
+ */
 export const set_max_record_file_size = (size: number) => {
     benchmark_record_file_size = Math.max(size, minimum_benchmark_file_size);
-    document.dispatchEvent(new CustomEvent('waterfall:config', {
-        detail: {
-            max_size: benchmark_record_file_size
-        }
-    }));
 }
 
+/**
+ * Set max records
+ */
 export const set_max_records = (records: number) => {
     benchmark_max_records = Math.max(records, minimum_benchmark_records);
-    document.dispatchEvent(new CustomEvent('waterfall:config', {
-        detail: {
-            max_records: benchmark_max_records
-        }
-    }));
 }
 
 /**
@@ -55,48 +51,19 @@ export const get_max_record_file_size = () => benchmark_record_file_size;
  * Get max record file records
  */
 export const get_max_records = () => benchmark_max_records;
+
+/**
+ * Get prettify
+ */
 export const get_prettify = () => prettify;
+/**
+ * Set prettify
+ */
 export const set_prettify = (value: boolean) => {
     if (!is_boolean(value)) {
         return;
     }
     prettify = value;
-    document.dispatchEvent(new CustomEvent('waterfall:config', {
-        detail: {
-            prettify: value
-        }
-    }));
-}
-
-/**
- * Save item to local storage
- */
-export const save_storage = (name: string, value: string) : void => {
-    try {
-        localStorage.setItem('waterfall-' + name, value)
-    } catch (_) {
-    }
-};
-
-/**
- * Delete item from local storage
- */
-export const delete_storage = (name: string): void => {
-    try {
-        localStorage.removeItem('waterfall-' + name);
-    } catch (_) {
-    }
-}
-
-/**
- * Get item from local storage
- */
-export const get_storage = (name: string): string => {
-    try {
-        return localStorage.getItem('waterfall-' + name);
-    } catch (_) {
-        return null;
-    }
 }
 
 /**
@@ -325,7 +292,7 @@ export const download_json = (json: any, filename?: string) => {
             URL.revokeObjectURL(url);
         }, 100);
     }
-    a.onclick  = action;
+    a.onclick = action;
     a.oncancel = action;
     a.click();
 }
@@ -418,7 +385,7 @@ export const is_element = (element: any): element is Element => {
 /**
  * Filter json profiler data
  */
-export const filter_profiler = (param: JsonProfiler|string|Element): JsonProfiler => {
+export const filter_profiler = (param: JsonProfiler | string | Element): JsonProfiler => {
     if (is_element(param)) {
         param = param.textContent;
     }
@@ -538,7 +505,7 @@ export const filter_profiler = (param: JsonProfiler|string|Element): JsonProfile
         }
     }
 
-    let grouped : {
+    let grouped: {
         [key: number | string]: string
     } = {};
     // checking records
@@ -686,4 +653,48 @@ export const is_equal = (a: any, b: any): boolean => {
         return true;
     }
     return false;
+}
+
+export const dispatch_event = (name: string, detail: any) => {
+    document.dispatchEvent(new CustomEvent(name, {
+        detail: detail
+    }));
+}
+
+export default {
+    max_benchmark_records,
+    max_benchmark_file_size,
+    minimum_benchmark_records,
+    minimum_benchmark_file_size,
+    set_max_record_file_size,
+    set_max_records,
+    get_max_record_file_size,
+    get_max_records,
+    get_prettify,
+    set_prettify,
+    round,
+    round_time,
+    icon,
+    size_format,
+    set_attribute,
+    create_element,
+    select_elements,
+    select_element,
+    get_json_filename,
+    download_json,
+    is_string,
+    is_function,
+    is_object,
+    is_number,
+    is_numeric,
+    is_numeric_integer,
+    is_integer,
+    is_array,
+    is_boolean,
+    count,
+    is_html_element,
+    is_element,
+    filter_profiler,
+    is_equal,
+    dispatch_event
 }

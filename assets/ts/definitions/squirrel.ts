@@ -15,7 +15,7 @@ Squirrel.filters.define('length', count);
  */
 export const load = (template: string, data: {
     json: JsonProfiler;
-    [p: string|number] : any;
+    [p: string | number]: any;
 }) => {
     return Squirrel.render(template, data, {useWith: true});
 }

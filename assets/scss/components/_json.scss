@@ -14,12 +14,15 @@ waterfall[data-tab-mode="json"] {
         overflow: clip;
         margin: 0;
     }
+
     waterfall-content waterfall-tab-content {
         //overflow: hidden;
     }
+
     [data-command-action="minify"] {
         color: var(--waterfall-header-tab-active-color);
     }
+
     @media screen and (max-width: 640px) {
         waterfall-filters waterfall-actions > waterfall-info {
             flex: 0 0 100%;

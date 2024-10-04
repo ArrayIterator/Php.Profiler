@@ -46,12 +46,13 @@
     --waterfall-aggregator-active-color: #cfe1f9;
     --waterfall-aggregator-active-text-color: #001e46;
 }
+
 :root:has(waterfall[data-color-mode="dark"]) {
     //--waterfall-bg-color-base: #2b2b2b;
     --waterfall-bg-color-base: #282828;
     --waterfall-header-bg-color: #3c3c3c;
     --waterfall-action-hover-color: #4d4d4d;
-    --waterfall-action-filter-hover-color: rgba(255, 255,255, .1);
+    --waterfall-action-filter-hover-color: rgba(255, 255, 255, .1);
     --waterfall-header-text-color: #e5e5e5;
     --waterfall-action-hover-text-color: #f1f1f1;
     --waterfall-header-border-color: #5e5e5e;
@@ -70,6 +71,7 @@
     --waterfall-aggregator-border-color: #7f7f7f;
     --waterfall-aggregator-active-text-color: #bee5fb;
 }
+
 // -----------------------------------------------------------------
 // END ROOT
 // -----------------------------------------------------------------

@@ -51,8 +51,12 @@ waterfall {
 
     &[data-resize] {
         cursor: ns-resize;
-        transition: unset;
+        transition: none;
         user-select: none;
+
+        &[data-resize="resize-x"] {
+            cursor: ew-resize;
+        }
     }
 
     pre,

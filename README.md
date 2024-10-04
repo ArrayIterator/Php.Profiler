@@ -87,7 +87,7 @@ Maximum record size is 1000 records, if more than 1000 records, the UI will not 
 - [x] ToolBar (Chrome Like)
 - [x] Dark Mode & Light Mode (Auto Detect)
 - [x] Resizeable
-- [x] Responsiveness
+- [ ] Responsiveness (Partial)
 - [x] Action Size
   - [x] Maximize
   - [x] Minimize (restore)
