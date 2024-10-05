@@ -176,24 +176,29 @@ waterfall {
         record-item-name {
             flex: 0 0 var(--waterfall-record-name-width);
             width: var(--waterfall-record-name-width);
+            min-width: var(--waterfall-record-min-width);
         }
 
         record-item-group {
             flex: 0 0 var(--waterfall-record-group-width);
             width: var(--waterfall-record-group-width);
+            min-width: var(--waterfall-record-min-width);
         }
 
         record-item-duration {
             flex: 0 0 var(--waterfall-record-duration-width);
+            min-width: var(--waterfall-record-min-width);
             width: var(--waterfall-record-duration-width);
         }
 
         record-item-memory {
             flex: 0 0 var(--waterfall-record-memory-width);
+            min-width: var(--waterfall-record-min-width);
             width: var(--waterfall-record-memory-width);
         }
 
         record-item-waterfall {
+            min-width: var(--waterfall-record-min-width);
             flex: 0 1 100%;
         }
 
@@ -230,6 +235,24 @@ waterfall {
         }
 
         @media screen and (max-width: 640px) {
+            record-item-name {
+                flex: 0 1 var(--waterfall-record-name-width);
+            }
+
+            record-item-group {
+                flex: 0 1 var(--waterfall-record-group-width);
+            }
+
+            record-item-duration {
+                flex: 0 1 var(--waterfall-record-duration-width);
+            }
+
+            record-item-memory {
+                flex: 0 1 var(--waterfall-record-memory-width);
+            }
+            waterfall-tab-content {
+                scrollbar-width: none;
+            }
             waterfall-search {
                 & {
                     flex-direction: column;

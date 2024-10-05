@@ -4,19 +4,19 @@ import {JsonProfiler, RecordProfiler} from "../types/types";
 
 /**
  * Max benchmark records
- * max 1000 records to prevent memory issues
+ * max 3000 records to prevent memory issues
  */
-export const max_benchmark_records = 1000;
+export const max_benchmark_records = 3000;
 
 /**
  * Max benchmark file size
- * max 10MB to prevent memory issues
+ * max 30MB to prevent memory issues
  */
-export const max_benchmark_file_size = 10 * 1024 * 1024; // in bytes
+export const max_benchmark_file_size = 30 * 1024 * 1024; // in bytes
 /**
- * Minimum and maximum records of the benchmark file
+ * Minimum and maximum records of the benchmarks
  */
-export const minimum_benchmark_records = 50;
+export const minimum_benchmark_records = 500;
 
 /**
  * Minimum and maximum size of the benchmark file is 1MB in bytes

@@ -6,14 +6,19 @@ import {
     get_max_records,
     is_element,
     is_html_element,
-    is_numeric_integer,
+    is_numeric_integer, round,
     select_element,
     select_elements,
-    set_attribute,
+    set_attribute, set_max_record_file_size, set_max_records,
     size_format
 } from "./definitions/functions";
 import {ActionTypes, ColorModeTypes} from "./types/types";
-import config, {benchmark_allowed_resize_tag_names, is_mac} from "./definitions/config";
+import config, {
+    benchmark_allowed_resize_tag_names,
+    color_mode_list,
+    config_color_mode, config_enable_labs, config_max_records, config_max_size,
+    is_mac
+} from "./definitions/config";
 import app from "./definitions/app";
 // @ts-expect-error ignore
 if (!window.arrayiterator_waterfall) {
@@ -106,6 +111,9 @@ let interval = setInterval(() => {
                             });
                         });
                         return;
+                    }
+                    if (action === 'preference' && app.action === 'closed') {
+                        app.action = 'opened';
                     }
                     set_attribute(el, {
                         'data-status': status === 'active' ? null : 'active'
@@ -289,11 +297,8 @@ let interval = setInterval(() => {
 
     /* --- RESTORE ACTION STATUS --- */
     document.addEventListener('waterfall:imported', () => {
-        // set max records and max size
-        app.use_elements('waterfall-max-records')
-            .forEach((el) => el.replaceChildren(get_max_records().toString()));
-        app.use_elements('waterfall-max-size')
-            .forEach((el) => el.replaceChildren(size_format(get_max_record_file_size())));
+        app.set_max_records(get_max_records());
+        app.set_max_size(get_max_record_file_size());
         app.use_elements('waterfall-action[data-action="restore"]').forEach((restore_action) => {
             set_attribute(restore_action, {
                 'data-status': app.original_profiler ? 'active' : null
@@ -486,6 +491,50 @@ let interval = setInterval(() => {
         currentResizeTarget = null;
     });
 
+    /* ---------------------------------------------------------------------
+     * PREFERENCES
+     */
+    /* --- PREFERENCES --- */
+    app.use_element('waterfall-preference')?.addEventListener('change', (e) => {
+        let target = e.target;
+        if (!(target instanceof HTMLInputElement) && !(target instanceof HTMLSelectElement)) {
+            return;
+        }
+        let name = target.name;
+        if (!name) {
+            return;
+        }
+        switch (name) {
+            case 'color_mode':
+                let mode = target.value as ColorModeTypes|"auto";
+                if (!color_mode_list.includes(mode as ColorModeTypes)) {
+                    mode = 'auto';
+                }
+                app.set_color(mode, true);
+                break;
+            case 'maximum_records':
+                let value = parseInt(target.value);
+                if (is_numeric_integer(value)) {
+                    app.set_max_records(value);
+                }
+
+                config.set(config_max_records, get_max_records());
+                target.value = get_max_records().toString();
+                break;
+            case 'maximum_size':
+                let size = parseInt(target.value);
+                if (is_numeric_integer(size)) {
+                    app.set_max_size(size);
+                }
+                config.set(config_max_size, size);
+                target.value = round(get_max_record_file_size() / 1024 / 1024, 0).toString()
+                break;
+            case 'enable_labs':
+                let enable = target.value;
+                app.set_enable_labs(enable === '1');
+                break;
+        }
+    });
     /* ---------------------------------------------------------------------
      * RUNNER
      */

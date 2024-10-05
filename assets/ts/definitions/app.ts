@@ -1,19 +1,27 @@
 import {
     create_element,
     dispatch_event,
-    filter_profiler, icon,
-    is_equal, is_function,
+    filter_profiler,
+    get_max_records,
+    icon,
+    is_equal,
+    is_function,
     is_html_element,
-    is_string, select_element, select_elements, set_attribute,
-    set_prettify
+    is_string,
+    select_element,
+    select_elements,
+    set_attribute,
+    set_max_record_file_size,
+    set_max_records,
+    set_prettify,
+    size_format
 } from "./functions";
 import Config, {
     action_list,
     color_mode_list,
     config_action_mode,
-    config_color_mode,
-    default_benchmark_width,
-    tab_list
+    config_color_mode, config_enable_labs,
+    default_benchmark_width
 } from "./config";
 import {ActionTypes, AppInterface, ColorModeTypes, JsonProfiler, TabListTypes} from "../types/types";
 import AbstractDispatcher from "../dispatcher/AbstractDispatcher";
@@ -22,10 +30,11 @@ import JsonDispatcher from "../dispatcher/JsonDispatcher";
 import {load} from "./squirrel";
 import toolbarTemplate from "../templates/toolbar.sqrl";
 import preferenceTemplate from "../templates/preference.sqrl";
+import LabDispatcher from "../dispatcher/LabDispatcher";
 
 let profiler: JsonProfiler = null;
 let original_profiler: JsonProfiler = null;
-let color_mode: ColorModeTypes = null;
+let color_mode: ColorModeTypes|"auto" = null;
 let action: ActionTypes = Config.get(config_action_mode) === 'opened' ? 'opened' : 'closed';
 let tab: TabListTypes = 'benchmark';
 let previous_tab: TabListTypes = tab;
@@ -58,6 +67,9 @@ class App implements AppInterface {
     #valid: boolean = false;
     #initialized: boolean = false;
     #allow_locked_change: boolean = false;
+    #hasChangeMode : boolean = false;
+    #enable_labs: boolean = Config.get('enable_labs') === true;
+    #lab_dispatcher: LabDispatcher = new LabDispatcher();
 
     constructor() {
         /**
@@ -147,16 +159,17 @@ class App implements AppInterface {
         if (!color_mode_list.includes(colorMode)) {
             colorMode = Config.get(config_color_mode) as ColorModeTypes;
             colorMode = color_mode_list.includes(colorMode) ? colorMode : null;
-            if (!colorMode && Config.has('color-mode')) {
-                Config.remove('color-mode');
+            if (!colorMode && Config.has(config_color_mode)) {
+                Config.remove(config_color_mode);
             }
         }
-        let hasChangeMode = !!colorMode;
-        if (!hasChangeMode && is_function(window.matchMedia)) {
+        this.#hasChangeMode = colorMode !== null;
+        if (is_function(window.matchMedia)) {
             // detect by match media
             window.matchMedia('(prefers-color-scheme: dark)')
                 ?.addEventListener('change', (event: MediaQueryListEvent) => {
-                    if (!hasChangeMode) {
+                    console.log(this.#hasChangeMode);
+                    if (!this.#hasChangeMode) {
                         this.color_mode = (event.matches ? "dark" : "light");
                     }
                 });
@@ -185,6 +198,7 @@ class App implements AppInterface {
         // factory
         this.add_dispatcher('benchmark', new BenchmarkDispatcher());
         this.add_dispatcher('json', new JsonDispatcher());
+        this.add_dispatcher('labs', this.#lab_dispatcher);
 
         /* ---------------------------------------------------------------------
          * TABS
@@ -197,13 +211,38 @@ class App implements AppInterface {
                 this.remove_dispatcher(target);
                 return;
             }
-            el.addEventListener('click', (e: Event) => {
-                e.preventDefault();
-                if (this.set_tab(el) && this.action === 'closed') {
+        });
+
+        this.waterfall.addEventListener('click', (e: Event) => {
+            let target = e.target as HTMLElement;
+            if (!is_html_element(target)) {
+                return;
+            }
+            target = target.tagName.toLowerCase() === 'waterfall-action-tab' ? target : target.closest('waterfall-action-tab');
+            if (!is_html_element(target)) {
+                return;
+            }
+            e.preventDefault();
+            let el = target as HTMLElement;
+            const tab = el.getAttribute('data-tab') as TabListTypes;
+            if (this.set_tab(tab)) {
+                this.reset_slider_bottom(el);
+                if (this.action === 'closed') {
                     this.action = 'opened';
                 }
-            });
+            }
         });
+
+        if (!this.#enable_labs) {
+            this.remove_dispatcher('labs');
+        }
+        let content = this.use_element('waterfall-content');
+        if (!select_element('waterfall-drag-import', content)) {
+            content.append(create_element('waterfall-drag-import', {
+                'text': 'Drop JSON file here to import'
+            }));
+        }
+
         this.#allow_locked_change = false;
         (document.body || document.documentElement).appendChild(this.waterfall);
     }
@@ -216,16 +255,17 @@ class App implements AppInterface {
         if (!is_string(name)) {
             throw new Error('Name must be a string');
         }
-
+        if (name === 'labs' && dispatcher !== this.#lab_dispatcher) {
+            throw new Error('Cannot add labs dispatcher');
+        }
         if (this.#locked_dispatchers.has(name) && !this.#allow_locked_change) {
             throw new Error('Dispatcher is locked');
         }
-
         // Add tab
         if (!(dispatcher instanceof AbstractDispatcher)) {
             throw new Error('Dispatcher must be an instance of AbstractDispatcher');
         }
-        if (this.#dispatchers.has(name)) {
+        if (this.#dispatchers.has(name) && name !== 'labs') {
             throw new Error('Dispatcher already exists');
         }
         this.#dispatchers.set(name, dispatcher);
@@ -242,11 +282,21 @@ class App implements AppInterface {
                 'data-tab': name,
                 title: dispatcher.name(),
                 html: `               
-                    <waterfall-name>Benchmark</waterfall-name>
+                    <waterfall-name>${dispatcher.name()}</waterfall-name>
                     <waterfall-icon>${_icon}</waterfall-icon>
                 `
             });
-            section.append(element);
+            if (name === 'labs') {
+                // get benchmark
+                let json = this.use_element('waterfall-action-tab[data-tab="json"]');
+                if (json) {
+                    section.insertBefore(element, json);
+                } else {
+                    section.append(element);
+                }
+            } else {
+                section.append(element);
+            }
         }
         if (!tabContent) {
             let element = create_element('waterfall-tab', {
@@ -333,28 +383,49 @@ class App implements AppInterface {
     /**
      * Get color mode
      */
-    get_color_mode(): ColorModeTypes {
-        return color_mode;
+    get_color_mode(): ColorModeTypes|"auto" {
+        return color_mode||"auto";
     }
 
-    get color_mode() {
-        return color_mode;
+    get color_mode() : ColorModeTypes|"auto" {
+        return color_mode ||"auto";
+    }
+
+    set_max_records(number: number){
+        set_max_records(number);
+        this.use_elements('waterfall-max-records')
+            .forEach((el) => el.replaceChildren(get_max_records().toString()));
+    }
+
+    set_max_size(size: number){
+        set_max_record_file_size(size);
+        this.use_elements('waterfall-max-size')
+            .forEach((el) => el.replaceChildren(size_format(size)));
     }
 
     /**
      * Set color mode
      */
-    set_color(mode: ColorModeTypes, save: boolean = false) {
-        if (color_mode_list.includes(mode)) {
-            color_mode = mode;
+    set_color(mode: ColorModeTypes|"auto", save: boolean = false) {
+        if (color_mode_list.includes(mode as ColorModeTypes)) {
+            color_mode = mode as ColorModeTypes;
             this.waterfall.setAttribute('data-color-mode', mode);
             if (save) {
-                Config.set('color-mode', mode);
+                this.#hasChangeMode = true;
+                Config.set(config_color_mode, mode);
             }
+        } else if (mode === 'auto') {
+            if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                this.waterfall.setAttribute('data-color-mode', 'dark');
+            } else {
+                this.waterfall.setAttribute('data-color-mode', 'light');
+            }
+            Config.remove(config_color_mode);
+            this.#hasChangeMode = false;
         }
     }
 
-    set color_mode(mode: ColorModeTypes) {
+    set color_mode(mode: ColorModeTypes|"auto") {
         this.set_color(mode);
     }
 
@@ -406,7 +477,7 @@ class App implements AppInterface {
             target = mode;
             mode = target.getAttribute('data-tab') as TabListTypes;
         }
-        if (tab_list.includes(mode)) {
+        if (this.has_dispatcher(mode)) {
             let action_tab: HTMLElement = target || this.use_element(`waterfall-action-tab[data-tab="${mode}"]`);
             if (!action_tab || action_tab.getAttribute('data-tab') !== mode) {
                 return false;
@@ -467,7 +538,7 @@ class App implements AppInterface {
     }
 
     reset_slider_bottom($action_tab?: HTMLElement): void {
-        $action_tab = $action_tab || this.use_element(`waterfall-action-tab[data-tab="${tab}"]`);
+        $action_tab = $action_tab || this.use_element(`waterfall-action-tab[data-tab="${this.tab}"]`);
         if (!$action_tab) {
             return;
         }
@@ -517,7 +588,21 @@ class App implements AppInterface {
             timeout_message = setTimeout(this.set_message_info.bind(this), 3000);
         }
     }
-
+    set_enable_labs(enable: boolean) {
+        this.#enable_labs = enable;
+        Config.set(config_enable_labs, enable);
+        if (enable) {
+            this.add_dispatcher('labs', this.#lab_dispatcher);
+            this.reset_slider_bottom();
+        } else {
+            this.remove_dispatcher('labs');
+            let tab = this.tab;
+            if (tab === 'labs') {
+                tab = 'benchmark';
+            }
+            this.set_tab(tab);
+        }
+    }
     /**
      * Dispatch the action
      */
@@ -537,7 +622,7 @@ class App implements AppInterface {
         }
     ) {
         const tab = action_tab.getAttribute('data-tab');
-        if (!tab_list.includes(tab as TabListTypes)) {
+        if (!this.has_dispatcher(tab)) {
             return;
         }
         tabs?.forEach((element) => {
@@ -615,7 +700,7 @@ class App implements AppInterface {
      */
     sort_tabs(tabs: Array<TabListTypes>) {
         // filter
-        tabs = tabs.filter((tab) => tab_list.includes(tab));
+        tabs = tabs.filter((tab) => this.has_dispatcher(tab));
         if (tabs.length === 0) {
             return;
         }
@@ -630,12 +715,10 @@ class App implements AppInterface {
                 tabElements.push(el);
             }
         }
-        for (let tab of tab_list) {
-            if (!tabs.includes(tab)) {
-                let el = this.use_element(`waterfall-action-tab[data-tab="${tab}"]`);
-                if (el) {
-                    tabElements.push(el);
-                }
+        for (let tab of this.#dispatchers.keys()) {
+            let el = this.use_element(`waterfall-action-tab[data-tab="${tab}"]`);
+            if (el) {
+                tabElements.push(el);
             }
         }
         if (tabElements.length === 0) {

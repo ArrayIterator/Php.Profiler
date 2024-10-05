@@ -40,7 +40,7 @@
     --waterfall-bg-color-notice: #dcbb09;
     --waterfall-bg-color-notice-text: #fff;
     --waterfall-record-min-width: 50px;
-    --waterfall-record-name-width: 200px;
+    --waterfall-record-name-width: 175px;
     --waterfall-aggregator-border-color: #cfcfcf;
     --waterfall-aggregator-active-border-color: #cfe1f9;
     --waterfall-aggregator-active-color: #cfe1f9;
@@ -71,7 +71,11 @@
     --waterfall-aggregator-border-color: #7f7f7f;
     --waterfall-aggregator-active-text-color: #bee5fb;
 }
-
+@media screen and (max-width: 640px){
+    :root {
+        --waterfall-record-name-width: 100px;
+    }
+}
 // -----------------------------------------------------------------
 // END ROOT
 // -----------------------------------------------------------------

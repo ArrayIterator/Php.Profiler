@@ -16,7 +16,10 @@ waterfall[data-tab-mode="json"] {
     }
 
     waterfall-content waterfall-tab-content {
-        //overflow: hidden;
+        overflow: hidden;
+        pre {
+            overflow: auto;
+        }
     }
 
     [data-command-action="minify"] {

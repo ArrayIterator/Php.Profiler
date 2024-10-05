@@ -125,16 +125,16 @@ export interface AppInterface {
     /**
      * Get color mode
      */
-    get_color_mode(): ColorModeTypes;
+    get_color_mode(): ColorModeTypes | "auto";
 
-    get color_mode(): ColorModeTypes;
+    get color_mode(): ColorModeTypes | "auto";
 
     /**
      * Set color mode
      */
-    set_color(mode: ColorModeTypes, save: boolean): any;
+    set_color(mode: ColorModeTypes| "auto", save: boolean): any;
 
-    set color_mode(mode: ColorModeTypes);
+    set color_mode(mode: ColorModeTypes| "auto");
 
     /**
      * Get action mode

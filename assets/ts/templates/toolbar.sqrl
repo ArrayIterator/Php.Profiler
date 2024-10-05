@@ -106,8 +106,9 @@
         <waterfall-tab data-tab="benchmark" data-status="active"></waterfall-tab>
         <!-- <div data-waterfall="tab" data-tab="info"></div> -->
         <waterfall-tab data-tab="json"></waterfall-tab>
+        <waterfall-tab data-tab="labs"></waterfall-tab>
         <waterfall-drag-import>
-            Drag and drop your JSON file here
+            Drop JSON file here to import
         </waterfall-drag-import>
     </waterfall-content>
 </waterfall-container>

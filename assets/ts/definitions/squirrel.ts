@@ -1,6 +1,16 @@
 import * as Squirrel from 'squirrelly';
-import {count, icon, round, round_time, size_format} from "./functions";
+import {
+    count,
+    get_max_record_file_size,
+    get_max_records,
+    icon, max_benchmark_file_size,
+    max_benchmark_records,
+    round,
+    round_time,
+    size_format
+} from "./functions";
 import {JsonProfiler} from "../types/types";
+import {Config, config_color_mode, config_enable_labs} from "./config";
 
 Squirrel.filters.define('round', round);
 Squirrel.filters.define('humanTime', round_time);
@@ -17,6 +27,12 @@ export const load = (template: string, data: {
     json: JsonProfiler;
     [p: string | number]: any;
 }) => {
+    data['maximum_benchmark_records'] = get_max_records();
+    data['maximum_benchmark_size'] = get_max_record_file_size();
+    data['default_maximum_benchmark_records'] = max_benchmark_records;
+    data['default_maximum_benchmark_size'] = max_benchmark_file_size;
+    data['enable_labs'] = Config.get(config_enable_labs) === true;
+    data['color_mode'] = Config.get(config_color_mode);
     return Squirrel.render(template, data, {useWith: true});
 }
 

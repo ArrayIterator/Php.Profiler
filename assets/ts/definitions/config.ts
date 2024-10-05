@@ -1,6 +1,7 @@
 // noinspection JSUnusedGlobalSymbols
 
 import {
+    get_max_record_file_size, get_max_records,
     is_boolean,
     is_integer,
     is_object,
@@ -13,14 +14,16 @@ import {
     set_max_records,
     set_prettify
 } from "./functions";
-import {ActionTypes, ColorModeTypes, ConfigParams, TabListTypes} from "../types/types";
+import {ActionTypes, ColorModeTypes, ConfigParams} from "../types/types";
 
 export const setting_storage_name = 'arrayiterator-waterfall-profiler-preference';
-export const config_tab_mode = 'tab-mode';
-export const config_action_mode = 'action-mode';
-export const config_color_mode = 'color-mode';
-export const config_max_records = 'max-records';
-export const config_max_size = 'max-size';
+export const config_tab_mode = 'tab_mode';
+export const config_action_mode = 'action_mode';
+export const config_color_mode = 'color_mode';
+export const config_max_records = 'maximum_benchmark_records';
+export const config_max_size = 'maximum_benchmark_size';
+export const config_enable_labs = 'enable_labs';
+
 export const config_prettify = 'prettify';
 export const color_mode_list: Array<ColorModeTypes> = [
     'light',
@@ -36,11 +39,6 @@ export const action_list: Array<
     'maximize'
 ];
 
-export const tab_list: Array<TabListTypes> = [
-    'benchmark',
-    'labs',
-    'json'
-];
 
 // use user agent
 // noinspection JSDeprecatedSymbols
@@ -107,24 +105,6 @@ if (!is_object(configurations)) {
     localStorage.removeItem(setting_storage_name);
 }
 
-const valid = (key: string, value: any) => {
-    return !(key === config_tab_mode && !tab_list.includes(value)
-        || key === config_action_mode && !action_list.includes(value)
-        || key === config_color_mode && !color_mode_list.includes(value)
-        || key === config_max_records && (
-            !is_integer(value) || (
-                value <= minimum_benchmark_records || value >= max_benchmark_records
-            )
-        )
-        || key === config_max_size && (
-            !is_integer(value) || (
-                value <= minimum_benchmark_file_size || value >= max_benchmark_file_size
-            )
-        )
-        || key === config_prettify && !is_boolean(value)
-    );
-}
-
 function ConfigObject() {
     // setups
     this.get(config_max_records);
@@ -138,19 +118,27 @@ function ConfigObject() {
 ConfigObject.prototype.get = function get(key: ConfigParams) {
     let value = configurations[key];
     if (this.has(key)) {
-        if (!valid(key, value)) {
-            this.delete(key);
-            return null;
-        }
-        if (key === config_max_records) {
-            set_max_records(value);
-        }
         if (key === config_max_size) {
-            set_max_record_file_size(value);
-        }
-        if (key === config_prettify) {
+            if (is_integer(value)) {
+                set_max_record_file_size(value * 1024 * 1024);
+            }
+            return get_max_record_file_size();
+        } else if (key === config_max_records) {
+            if (is_integer(value)) {
+                set_max_records(value);
+            }
+            return get_max_records();
+        } else if (key === config_prettify) {
             value = !!value;
             set_prettify(value);
+        } else if (key === config_action_mode && ['minimize', 'maximize'].includes(value)) {
+            value = 'opened';
+        } else if (key === config_action_mode && !action_list.includes(value)
+            || key === config_color_mode && !color_mode_list.includes(value)
+        ) {
+            return;
+        } else if (key === config_enable_labs) {
+            value = value === '0' ? false : (value === '1' ? true: (!!value));
         }
         return value;
     }
@@ -161,26 +149,24 @@ ConfigObject.prototype.set = function set(key: ConfigParams, value: any) {
     if (!is_string(key)) {
         return;
     }
-    if (!valid(key, value)) {
-        console.log('set', key, value);
-        if (value === null) {
-            this.delete(key);
-        }
-        return;
-    }
     if (key === config_max_records) {
         value = parseInt(value);
         value = Math.min(Math.max(minimum_benchmark_records, value), max_benchmark_records);
         set_max_records(value);
     } else if (key === config_max_size) {
-        value = parseFloat(value);
-        value = Math.min(Math.max(minimum_benchmark_file_size, value), max_benchmark_file_size);
-        set_max_record_file_size(value);
+        value = parseInt(value);
+        value = Math.min(Math.max(minimum_benchmark_file_size/1024/1024, value), max_benchmark_file_size/1024/1024);
+        set_max_record_file_size(value * 1024 * 1024);
     } else if (key === config_action_mode && ['minimize', 'maximize'].includes(value)) {
         value = 'opened';
     } else if (key === config_prettify) {
         value = !!value;
         set_prettify(value);
+    } else if (key === config_enable_labs) {
+        value = value === '0' ? false : (value === '1' ? true: (!!value));
+    } else if (key  === config_color_mode && !color_mode_list.includes(value)) {
+        this.remove(key);
+        return;
     }
     configurations[key] = value;
     localStorage.setItem(setting_storage_name, JSON.stringify(configurations));

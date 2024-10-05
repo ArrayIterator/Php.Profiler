@@ -22,7 +22,7 @@ waterfall {
     & {
         @include flex-column;
         position: fixed;
-        width: 100vw;
+        width: 100dvw;
         left: 0;
         right: 0;
         bottom: 0;
@@ -31,7 +31,7 @@ waterfall {
         border: 0;
         font-weight: 250;
         vertical-align: middle;
-        max-height: 100vh;
+        max-height: 100dvh;
         scroll-behavior: smooth;
         opacity: 1;
         visibility: visible;
@@ -78,8 +78,8 @@ waterfall {
     }
 
     &[data-action-mode="maximize"] {
-        height: 100vh;
-        min-height: 100vh;
+        height: 100dvh;
+        min-height: 100dvh;
     }
 
     &[data-action-mode="opened"] {
@@ -330,21 +330,22 @@ waterfall-bar {
             position: relative;
             padding: 0 calc(var(--waterfall-font-size) / 2);
             margin: 0 calc(var(--waterfall-font-size) / 2);
+            scrollbar-width: none;
+        }
 
-            &:before {
-                @include separator-left;
-            }
+        &:before {
+            @include separator-left;
+        }
 
-            &::after {
-                position: absolute;
-                display: block;
-                content: "";
-                bottom: 0;
-                left: var(--data-waterfall-slider-left, 0);
-                width: var(--data-waterfall-slider-width, 0);
-                border-bottom: 2px solid var(--waterfall-header-tab-active-color);
-                transition: left ease .2s, width ease .2s;
-            }
+        &::after {
+            position: absolute;
+            display: block;
+            content: "";
+            bottom: 0;
+            left: var(--data-waterfall-slider-left, 0);
+            width: var(--data-waterfall-slider-width, 0);
+            border-bottom: 2px solid var(--waterfall-header-tab-active-color);
+            transition: left ease .2s, width ease .2s;
         }
 
         waterfall-action-tab {
@@ -373,10 +374,15 @@ waterfall-bar {
 
     // hide waterfall name
     @media screen and (max-width: 640px) {
+        > waterfall-info {
+            display: none;
+        }
         waterfall-action-tabs {
+            overflow: auto;
+
             waterfall-action-tab {
                 waterfall-name {
-                    display: none;
+                    //display: none;
                 }
             }
         }
@@ -391,6 +397,7 @@ waterfall-content {
         //flex: 0 0 100%;
         flex: 0 1 100%;
         overflow: hidden;
+        width: 100%;
     }
 
     &,
@@ -620,3 +627,26 @@ waterfall-filters {
 // -----------------------------------------------------------------
 // END FILTERS
 // -----------------------------------------------------------------
+
+waterfall-preference-content {
+    & {
+        padding: 0 var(--waterfall-font-size);
+    }
+
+    select,
+    [type="text"],
+    [type="number"] {
+        width: 100px;
+        border-radius: 3px;
+        padding: 3px;
+        margin: 0;
+        font-size: var(--waterfall-font-size);
+        color: var(--waterfall-color-base);
+        border: 1px solid var(--waterfall-header-border-color);
+        background-color: var(--waterfall-bg-color-base);
+        &:focus {
+            outline: none;
+            border-color: var(--waterfall-header-tab-active-color);
+        }
+    }
+}
