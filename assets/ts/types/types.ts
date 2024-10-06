@@ -87,6 +87,8 @@ export type JsonProfiler = {
 };
 
 export interface AppInterface {
+    readonly abstractDispatcher: typeof AbstractDispatcher;
+
     has_dispatcher(name: string): boolean;
 
     add_dispatcher(name: string, dispatcher: AbstractDispatcher): any;
@@ -103,6 +105,9 @@ export interface AppInterface {
      */
     get profiler(): JsonProfiler;
 
+    /**
+     * Set the current profiler
+     */
     set profiler(json: JsonProfiler);
 
     /**
@@ -120,6 +125,9 @@ export interface AppInterface {
      */
     get_original_profiler(): JsonProfiler | null;
 
+    /**
+     * Get the original profiler
+     */
     get original_profiler(): JsonProfiler | null;
 
     /**
@@ -127,20 +135,36 @@ export interface AppInterface {
      */
     get_color_mode(): ColorModeTypes | "auto";
 
+    /**
+     * Get color mode
+     */
     get color_mode(): ColorModeTypes | "auto";
+
+    /**
+     * Set max records
+     */
+    set_max_records(number: number): any;
+
+    /**
+     * Set max size
+     */
+    set_max_size(size: number): any;
 
     /**
      * Set color mode
      */
-    set_color(mode: ColorModeTypes| "auto", save: boolean): any;
+    set_color(mode: ColorModeTypes | "auto", save: boolean): any;
 
-    set color_mode(mode: ColorModeTypes| "auto");
+    set color_mode(mode: ColorModeTypes | "auto");
 
     /**
      * Get action mode
      */
     get_action(): ActionTypes;
 
+    /**
+     * Get action mode
+     */
     get action(): ActionTypes;
 
     /**
@@ -148,6 +172,9 @@ export interface AppInterface {
      */
     set_action(mode: ActionTypes): void;
 
+    /**
+     * Set action mode
+     */
     set action(mode: ActionTypes);
 
     /**
@@ -155,10 +182,19 @@ export interface AppInterface {
      */
     get_tab(): TabListTypes;
 
+    /**
+     * Get tab mode
+     */
     get tab(): TabListTypes;
 
+    /**
+     * Set tab mode
+     */
     set_tab(mode: TabListTypes | HTMLElement): boolean;
 
+    /**
+     * Set tab mode
+     */
     set tab(mode: TabListTypes);
 
     /**
@@ -166,11 +202,27 @@ export interface AppInterface {
      */
     get_previous_tab(): TabListTypes;
 
+    /**
+     * Get previous tab mode
+     */
     get previous_tab(): TabListTypes;
 
+    /**
+     * Reset the slider bottom
+     */
     reset_slider_bottom($action_tab?: HTMLElement): void;
 
+    /**
+     * Set the slider bottom
+     */
     set_message_info(msg: string, type: string, remove: boolean): void;
+
+    // LABS
+    set_enable_labs(enable: boolean): any;
+
+    get enable_labs(): boolean;
+
+    set enable_labs(enable: boolean);
 
     /**
      * Dispatch the action

@@ -4,9 +4,9 @@ import {JsonProfiler, RecordProfiler} from "../types/types";
 
 /**
  * Max benchmark records
- * max 3000 records to prevent memory issues
+ * max 5000 records to prevent memory issues
  */
-export const max_benchmark_records = 3000;
+export const max_benchmark_records = 5000;
 
 /**
  * Max benchmark file size
@@ -372,14 +372,14 @@ export const count = (value: any) => {
  * Check if the parameter is a HTMLElement
  */
 export const is_html_element = (element: any): element is HTMLElement => {
-    return element instanceof HTMLElement;
+    return element && element instanceof HTMLElement;
 }
 
 /**
  * Check if the parameter is an Element
  */
 export const is_element = (element: any): element is Element => {
-    return element instanceof Element;
+    return element && element instanceof Element;
 }
 
 /**
@@ -394,7 +394,7 @@ export const filter_profiler = (param: JsonProfiler | string | Element): JsonPro
     if (is_string(param)) {
         let size = count(param);
         if (size > max_size) {
-            throw new Error(
+            throw new RangeError(
                 `Only allow ${size_format(max_size)} bytes, ${size_format(size)} found`
             );
         }
@@ -427,7 +427,7 @@ export const filter_profiler = (param: JsonProfiler | string | Element): JsonPro
         throw new Error('Invalid profiler data');
     }
     if (count(records) > max_records) {
-        throw new Error(
+        throw new RangeError(
             `Only allow ${max_records} records, ${Object.keys(records).length} records found`
         );
     }
@@ -655,9 +655,10 @@ export const is_equal = (a: any, b: any): boolean => {
     return false;
 }
 
-export const dispatch_event = (name: string, detail: any) => {
-    document.dispatchEvent(new CustomEvent(name, {
-        detail: detail
+export const dispatch_event = (name: string, detail: any, target?: Element|Document) => {
+    (target||document).dispatchEvent(new CustomEvent(name, {
+        detail: detail,
+        bubbles: true,
     }));
 }
 

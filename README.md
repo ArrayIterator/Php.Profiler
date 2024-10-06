@@ -64,11 +64,16 @@ You can customize the implementation of the Frontend or Backend.
 
 Typescript & scss [**[assets](assets)**] is used to create the UI, the UI is created using the following technologies:
 
-Maximum record size is 1000 records, if more than 1000 records, the UI will not render the benchmark.
+Maximum record size is 5000 records, if more than 5000 records, the UI will not render the benchmark.
+(maximum record size can be changed in the preferences). When the record less than 5000 and set less than record, can be reset with:
+
+```javascript
+window.arrayiterator_waterfall.set_max_records(5000);
+```
 
 ### REQUIREMENT:
  
-- PHP 7.4 or higher
+- PHP 7.4 or later
 - Composer
 - DEV (Node.js (npm) - for installing the dependencies)
 
@@ -87,7 +92,7 @@ Maximum record size is 1000 records, if more than 1000 records, the UI will not 
 - [x] ToolBar (Chrome Like)
 - [x] Dark Mode & Light Mode (Auto Detect)
 - [x] Resizeable
-- [ ] Responsiveness (Partial)
+- [x] Responsiveness
 - [x] Action Size
   - [x] Maximize
   - [x] Minimize (restore)
@@ -101,7 +106,12 @@ Maximum record size is 1000 records, if more than 1000 records, the UI will not 
   - [x] Message (information about the import, export, restore)
   - [x] Input Search
   - [x] Horizontal Resizable Section
-- [ ] Labs Tab
+- [ ] Labs Tab (Under Development)
+  - [ ] Profiler Information
+  - [ ] Metadata of JSON
+  - [ ] RAM Usage & Limit (chart using pie chart from highchart.js)
+  - [ ] Additional Information
+  - [ ] Chart for benchmark
 - [x] Source Tab
 
 #### Benchmark Tab

@@ -45,6 +45,8 @@
     --waterfall-aggregator-active-border-color: #cfe1f9;
     --waterfall-aggregator-active-color: #cfe1f9;
     --waterfall-aggregator-active-text-color: #001e46;
+    --waterfall-preference-active-bg-color: #cfe3ff;
+    --waterfall-preference-active-text-color: #006eed;
 }
 
 :root:has(waterfall[data-color-mode="dark"]) {
@@ -70,6 +72,8 @@
     --waterfall-aggregator-active-border-color: #004973;
     --waterfall-aggregator-border-color: #7f7f7f;
     --waterfall-aggregator-active-text-color: #bee5fb;
+    --waterfall-preference-active-bg-color: #76acf4;
+    --waterfall-preference-active-text-color: #282828;
 }
 @media screen and (max-width: 640px){
     :root {

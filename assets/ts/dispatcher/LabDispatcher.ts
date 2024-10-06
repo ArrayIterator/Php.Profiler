@@ -3,16 +3,6 @@ import {AppInterface, JsonProfiler} from "../types/types";
 import {create_element, icon} from "../definitions/functions";
 
 export default class LabDispatcher extends AbstractDispatcher {
-    dispatch({
-        profiler,
-        tab_element,
-        app
-    } : {
-        profiler: JsonProfiler;
-        tab_element: HTMLElement;
-        app: AppInterface
-    }): any {
-    }
 
     icon(): SVGElement | null {
         let div = create_element('div', {
@@ -23,5 +13,18 @@ export default class LabDispatcher extends AbstractDispatcher {
 
     name(): string {
         return 'Labs';
+    }
+
+    dispatch(
+        {
+            profiler,
+            tab_element,
+            app
+        }: {
+            profiler: JsonProfiler;
+            tab_element: HTMLElement;
+            app: AppInterface
+        }
+    ): any {
     }
 }

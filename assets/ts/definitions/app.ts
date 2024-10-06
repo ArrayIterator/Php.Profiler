@@ -1,13 +1,16 @@
 import {
     create_element,
     dispatch_event,
+    download_json,
     filter_profiler,
     get_max_records,
     icon,
+    is_element,
     is_equal,
     is_function,
     is_html_element,
     is_string,
+    max_benchmark_records,
     select_element,
     select_elements,
     set_attribute,
@@ -20,8 +23,12 @@ import Config, {
     action_list,
     color_mode_list,
     config_action_mode,
-    config_color_mode, config_enable_labs,
-    default_benchmark_width
+    config_color_mode,
+    config_enable_labs,
+    config_max_records,
+    config_max_size,
+    default_benchmark_width,
+    is_mac
 } from "./config";
 import {ActionTypes, AppInterface, ColorModeTypes, JsonProfiler, TabListTypes} from "../types/types";
 import AbstractDispatcher from "../dispatcher/AbstractDispatcher";
@@ -31,26 +38,35 @@ import {load} from "./squirrel";
 import toolbarTemplate from "../templates/toolbar.sqrl";
 import preferenceTemplate from "../templates/preference.sqrl";
 import LabDispatcher from "../dispatcher/LabDispatcher";
+import Preference from "./preference";
 
 let profiler: JsonProfiler = null;
 let original_profiler: JsonProfiler = null;
-let color_mode: ColorModeTypes|"auto" = null;
+let color_mode: ColorModeTypes | "auto" = null;
 let action: ActionTypes = Config.get(config_action_mode) === 'opened' ? 'opened' : 'closed';
 let tab: TabListTypes = 'benchmark';
 let previous_tab: TabListTypes = tab;
 let timeout_message: any = null;
 let initial_tab = true;
+let resize_tab_timeout: any = null;
 
 // set prettify
 set_prettify(Config.get('prettify') !== false);
 
 class App implements AppInterface {
     /**
+     * Abstract dispatcher
+     */
+    readonly abstractDispatcher: typeof AbstractDispatcher = AbstractDispatcher;
+    /**
+     * Preference
+     */
+    readonly preference: Preference;
+    /**
      * Waterfall element
      * @private
      */
     readonly #waterfall: HTMLElement;
-
     /**
      * Dispatchers
      *
@@ -64,11 +80,42 @@ class App implements AppInterface {
      * @private
      */
     #locked_dispatchers: Set<string> = new Set();
+    /**
+     * Valid
+     * @private
+     */
     #valid: boolean = false;
+
+    /**
+     * Is initialized
+     * @private
+     */
     #initialized: boolean = false;
+
+    /**
+     * Allow locked change
+     *
+     * @private
+     */
     #allow_locked_change: boolean = false;
-    #hasChangeMode : boolean = false;
+
+    /**
+     * Has change mode
+     * @private
+     */
+    #allow_change_color_mode: boolean = false;
+    /**
+     * Enable labs
+     *
+     * @private
+     */
     #enable_labs: boolean = Config.get('enable_labs') === true;
+
+    /**
+     * Lab dispatcher
+     *
+     * @private
+     */
     #lab_dispatcher: LabDispatcher = new LabDispatcher();
 
     constructor() {
@@ -82,6 +129,7 @@ class App implements AppInterface {
             'style': default_benchmark_width
         });
 
+        this.preference = new Preference(this);
         this.add_dispatcher = this.add_dispatcher.bind(this);
         this.remove_dispatcher = this.remove_dispatcher.bind(this);
         this.has_dispatcher = this.has_dispatcher.bind(this);
@@ -98,8 +146,16 @@ class App implements AppInterface {
         this.import_json_file = this.import_json_file.bind(this);
         this.sort_tabs = this.sort_tabs.bind(this);
         this.reset_slider_bottom = this.reset_slider_bottom.bind(this);
-
-        ['complete', 'interactive'].includes(document.readyState) ? this.init() : window.addEventListener('DOMContentLoaded', () => this.init());
+        // @ts-expect-error ignore
+        if (!window.arrayiterator_waterfall) {
+            Object.defineProperty(window, 'arrayiterator_waterfall', {
+                value: this,
+                writable: false,
+                enumerable: false,
+            });
+            // no duplicate
+            ['complete', 'interactive'].includes(document.readyState) ? this.init() : window.addEventListener('DOMContentLoaded', () => this.init());
+        }
     }
 
     get valid(): boolean {
@@ -110,141 +166,62 @@ class App implements AppInterface {
         return this.#initialized;
     }
 
-    get abstractDispatcher(): typeof AbstractDispatcher {
-        return AbstractDispatcher;
+    /**
+     * Get the waterfall element
+     */
+    get waterfall(): HTMLElement {
+        return this.#waterfall;
     }
 
-    private init() {
-        /* ---------------------------------------------------------------------
-         * PREPARE
-         */
+    /**
+     * Get the current profiler
+     */
+    get profiler(): JsonProfiler {
+        return !profiler ? undefined : Object.assign({}, profiler); // clone
+    }
 
-        if (this.initialized) {
-            return;
-        }
-        this.#initialized = true;
-        // check if waterfall tag exists
-        if (select_element('waterfall')) {
-            return; // no duplicate
-        }
-        // get json element script
-        const json_element = select_element('script[type="application/json"][data-script="waterfall-profiler"]');
-        if (!json_element) {
-            return;
-        }
+    set profiler(json: JsonProfiler | string | Element) {
+        this.set_profiler(json);
+    }
 
-        // get hash
-        let hash = json_element.getAttribute('data-hash');
-        try {
-            // set json - will throw if not valid
-            this.profiler = json_element;
-        } catch (err) {
-            this.waterfall.remove(); // remove element
-            console.error(err); // show the error
-            return;
-        }
-        this.#valid = true;
-        // remove the json element to reduce dom
-        json_element.remove();
-        // if hash exists remove all scripts with the same hash
-        if (hash) {
-            // remove previous waterfall
-            select_elements(`script[data-script="waterfall-profiler"][data-hash="${hash}"]`).forEach((element) => {
-                element.remove();
-            });
-        }
+    get original_profiler() {
+        return this.get_original_profiler();
+    }
 
-        // Check the color mode
-        let colorMode = json_element.getAttribute('data-color-mode') as ColorModeTypes;
-        if (!color_mode_list.includes(colorMode)) {
-            colorMode = Config.get(config_color_mode) as ColorModeTypes;
-            colorMode = color_mode_list.includes(colorMode) ? colorMode : null;
-            if (!colorMode && Config.has(config_color_mode)) {
-                Config.remove(config_color_mode);
-            }
-        }
-        this.#hasChangeMode = colorMode !== null;
-        if (is_function(window.matchMedia)) {
-            // detect by match media
-            window.matchMedia('(prefers-color-scheme: dark)')
-                ?.addEventListener('change', (event: MediaQueryListEvent) => {
-                    console.log(this.#hasChangeMode);
-                    if (!this.#hasChangeMode) {
-                        this.color_mode = (event.matches ? "dark" : "light");
-                    }
-                });
-        }
+    get color_mode(): ColorModeTypes | "auto" {
+        return color_mode || "auto";
+    }
 
-        // init check if dark mode via match media
-        if (!colorMode && is_function(window.matchMedia) && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            colorMode = "dark";
-        }
+    set color_mode(mode: ColorModeTypes | "auto") {
+        this.set_color(mode);
+    }
 
-        // SETUP COLOR MODE BEFORE RENDER
-        this.color_mode = (colorMode);
-        // insert into body
-        // append content to waterfall element : toolbar + preference
-        for (let html of [
-            load(toolbarTemplate, {json: this.profiler}),
-            load(preferenceTemplate, {json: this.profiler}),
-        ]) {
-            this.waterfall.innerHTML += html;
-        }
+    get action(): ActionTypes {
+        return action;
+    }
 
-        this.#locked_dispatchers.add('benchmark');
-        this.#locked_dispatchers.add('json');
-        // unlock for adding
-        this.#allow_locked_change = true;
-        // factory
-        this.add_dispatcher('benchmark', new BenchmarkDispatcher());
-        this.add_dispatcher('json', new JsonDispatcher());
-        this.add_dispatcher('labs', this.#lab_dispatcher);
+    set action(mode: ActionTypes) {
+        this.set_action(mode);
+    }
 
-        /* ---------------------------------------------------------------------
-         * TABS
-         */
-        /* --- TAB MODE --- */
-        this.use_elements('waterfall-action-tab[data-tab]').forEach((el: HTMLElement) => {
-            const target = el.getAttribute('data-tab');
-            // remove tab action if no existing tab or data tab target
-            if (!target || !this.use_element(`waterfall-tab[data-tab="${target}"]`)) {
-                this.remove_dispatcher(target);
-                return;
-            }
-        });
+    get tab(): TabListTypes {
+        return tab;
+    }
 
-        this.waterfall.addEventListener('click', (e: Event) => {
-            let target = e.target as HTMLElement;
-            if (!is_html_element(target)) {
-                return;
-            }
-            target = target.tagName.toLowerCase() === 'waterfall-action-tab' ? target : target.closest('waterfall-action-tab');
-            if (!is_html_element(target)) {
-                return;
-            }
-            e.preventDefault();
-            let el = target as HTMLElement;
-            const tab = el.getAttribute('data-tab') as TabListTypes;
-            if (this.set_tab(tab)) {
-                this.reset_slider_bottom(el);
-                if (this.action === 'closed') {
-                    this.action = 'opened';
-                }
-            }
-        });
+    set tab(mode: TabListTypes) {
+        this.set_tab(mode);
+    }
 
-        if (!this.#enable_labs) {
-            this.remove_dispatcher('labs');
-        }
-        let content = this.use_element('waterfall-content');
-        if (!select_element('waterfall-drag-import', content)) {
-            content.append(create_element('waterfall-drag-import', {
-                'text': 'Drop JSON file here to import'
-            }));
-        }
+    get previous_tab(): TabListTypes {
+        return previous_tab;
+    }
 
-        this.#allow_locked_change = false;
-        (document.body || document.documentElement).appendChild(this.waterfall);
+    get enable_labs(): boolean {
+        return this.#enable_labs;
+    }
+
+    set enable_labs(enable: boolean) {
+        this.set_enable_labs(enable);
     }
 
     has_dispatcher(name: string) {
@@ -322,31 +299,27 @@ class App implements AppInterface {
     }
 
     /**
-     * Get the waterfall element
-     */
-    get waterfall(): HTMLElement {
-        return this.#waterfall;
-    }
-
-    /**
-     * Get the current profiler
-     */
-    get profiler(): JsonProfiler {
-        return !profiler ? undefined : Object.assign({}, profiler); // clone
-    }
-
-    set profiler(json: JsonProfiler | string | Element) {
-        this.set_profiler(json);
-    }
-
-    /**
      * Set the current profiler
      */
     set_profiler(json: JsonProfiler | string | Element) {
         if (!json) {
             return;
         }
-        json = filter_profiler(json);
+
+        try {
+            json = filter_profiler(json);
+        } catch (err) {
+            if (err instanceof RangeError) {
+                console.info(
+                    `The profiler has reached the maximum number of records.\n` +
+                    `You can change the maximum number of records by running: \n\n`
+                );
+                console.info(
+                    `\x1b[32mwindow.arrayiterator_waterfall.set_max_records(${max_benchmark_records})\x1b[0m`
+                );
+            }
+            throw err;
+        }
         if (!original_profiler && !is_equal(profiler, json)) {
             original_profiler = profiler || json;
         } else if (original_profiler && is_equal(original_profiler, json)) {
@@ -359,14 +332,16 @@ class App implements AppInterface {
      * Reset the profiler to the original profiler
      */
     reset_profiler() {
-        if (!original_profiler) {
+        if (!this.original_profiler) {
             return;
         }
         profiler = original_profiler;
         original_profiler = null;
+        this.import_json();
+        this.set_message_info('Restored successfully', 'success');
         dispatch_event('waterfall:reset', {
             profiler: this.profiler
-        })
+        }, this.waterfall);
     }
 
     /**
@@ -376,42 +351,36 @@ class App implements AppInterface {
         return original_profiler ? Object.assign({}, original_profiler) : null;
     }
 
-    get original_profiler() {
-        return this.get_original_profiler();
-    }
-
     /**
      * Get color mode
      */
-    get_color_mode(): ColorModeTypes|"auto" {
-        return color_mode||"auto";
+    get_color_mode(): ColorModeTypes | "auto" {
+        return color_mode || "auto";
     }
 
-    get color_mode() : ColorModeTypes|"auto" {
-        return color_mode ||"auto";
-    }
-
-    set_max_records(number: number){
+    set_max_records(number: number): void {
         set_max_records(number);
         this.use_elements('waterfall-max-records')
             .forEach((el) => el.replaceChildren(get_max_records().toString()));
+        Config.set(config_max_records, get_max_records());
     }
 
-    set_max_size(size: number){
+    set_max_size(size: number): void {
         set_max_record_file_size(size);
         this.use_elements('waterfall-max-size')
             .forEach((el) => el.replaceChildren(size_format(size)));
+        Config.set(config_max_size, size);
     }
 
     /**
      * Set color mode
      */
-    set_color(mode: ColorModeTypes|"auto", save: boolean = false) {
+    set_color(mode: ColorModeTypes | "auto", save: boolean = false) {
         if (color_mode_list.includes(mode as ColorModeTypes)) {
             color_mode = mode as ColorModeTypes;
             this.waterfall.setAttribute('data-color-mode', mode);
             if (save) {
-                this.#hasChangeMode = true;
+                this.#allow_change_color_mode = true;
                 Config.set(config_color_mode, mode);
             }
         } else if (mode === 'auto') {
@@ -421,22 +390,14 @@ class App implements AppInterface {
                 this.waterfall.setAttribute('data-color-mode', 'light');
             }
             Config.remove(config_color_mode);
-            this.#hasChangeMode = false;
+            this.#allow_change_color_mode = false;
         }
-    }
-
-    set color_mode(mode: ColorModeTypes|"auto") {
-        this.set_color(mode);
     }
 
     /**
      * Get action mode
      */
     get_action(): ActionTypes {
-        return action;
-    }
-
-    get action(): ActionTypes {
         return action;
     }
 
@@ -455,18 +416,10 @@ class App implements AppInterface {
         }
     }
 
-    set action(mode: ActionTypes) {
-        this.set_action(mode);
-    }
-
     /**
      * Get tab mode
      */
     get_tab(): TabListTypes {
-        return tab;
-    }
-
-    get tab(): TabListTypes {
         return tab;
     }
 
@@ -522,18 +475,10 @@ class App implements AppInterface {
         return found;
     }
 
-    set tab(mode: TabListTypes) {
-        this.set_tab(mode);
-    }
-
     /**
      * Get previous tab mode
      */
     get_previous_tab(): TabListTypes {
-        return previous_tab;
-    }
-
-    get previous_tab(): TabListTypes {
         return previous_tab;
     }
 
@@ -548,9 +493,9 @@ class App implements AppInterface {
         const parent = $action_tab.parentElement as HTMLElement;
         const rect = $action_tab.getBoundingClientRect();
         const parentRect = parent?.getBoundingClientRect();
-        const parentLeft = parentRect?.left || 0;
+        const parentLeft = (parentRect?.left || 0) + (parent?.parentElement?.scrollLeft || 0);
         const width = rect?.width || 0;
-        const offsetLeft = rect?.left || 0;
+        const offsetLeft = (rect?.left || 0) + (parent?.parentElement?.scrollLeft || 0);
         const realLeft = offsetLeft - parentLeft;
         set_attribute(this.waterfall, {
             style: {
@@ -588,6 +533,7 @@ class App implements AppInterface {
             timeout_message = setTimeout(this.set_message_info.bind(this), 3000);
         }
     }
+
     set_enable_labs(enable: boolean) {
         this.#enable_labs = enable;
         Config.set(config_enable_labs, enable);
@@ -603,6 +549,7 @@ class App implements AppInterface {
             this.set_tab(tab);
         }
     }
+
     /**
      * Dispatch the action
      */
@@ -662,7 +609,12 @@ class App implements AppInterface {
             tab_element,
             app: this
         });
-        dispatch_event('waterfall:imported', {profiler: json, tab_element});
+        dispatch_event('waterfall:imported', {profiler: json, tab_element}, this.waterfall);
+        this.use_elements('waterfall-action[data-action="restore"]').forEach((restore_action) => {
+            set_attribute(restore_action, {
+                'data-status': this.original_profiler ? 'active' : null
+            })
+        });
     }
 
     import_json_file(file: File) {
@@ -726,9 +678,417 @@ class App implements AppInterface {
         }
         tabs_element.replaceChildren(...tabElements);
     }
+
+    private init() {
+        /* ---------------------------------------------------------------------
+         * PREPARE
+         */
+
+        if (this.initialized) {
+            return;
+        }
+        this.#initialized = true;
+        // check if waterfall tag exists
+        if (select_element('waterfall')) {
+            return; // no duplicate
+        }
+        // get json element script
+        const json_element = select_element('script[type="application/json"][data-script="waterfall-profiler"]');
+        if (!json_element) {
+            return;
+        }
+
+        // get hash
+        let hash = json_element.getAttribute('data-hash');
+        try {
+            // set json - will throw if not valid
+            this.profiler = json_element;
+        } catch (err) {
+            this.waterfall.remove(); // remove element
+            console.error(err); // show the error
+            return;
+        }
+        this.#valid = true;
+        // remove the json element to reduce dom
+        json_element.remove();
+        // if hash exists remove all scripts with the same hash
+        if (hash) {
+            // remove previous waterfall
+            select_elements(`script[data-script="waterfall-profiler"][data-hash="${hash}"]`).forEach((element) => {
+                element.remove();
+            });
+        }
+
+        // Check the color mode
+        let colorMode = json_element.getAttribute('data-color-mode') as ColorModeTypes;
+        if (!color_mode_list.includes(colorMode)) {
+            colorMode = Config.get(config_color_mode) as ColorModeTypes;
+            colorMode = color_mode_list.includes(colorMode) ? colorMode : null;
+            if (!colorMode && Config.has(config_color_mode)) {
+                Config.remove(config_color_mode);
+            }
+        }
+        this.#allow_change_color_mode = colorMode !== null;
+        if (is_function(window.matchMedia)) {
+            // detect by match media
+            window.matchMedia('(prefers-color-scheme: dark)')
+                ?.addEventListener('change', (event: MediaQueryListEvent) => {
+                    console.log(this.#allow_change_color_mode);
+                    if (!this.#allow_change_color_mode) {
+                        this.color_mode = (event.matches ? "dark" : "light");
+                    }
+                });
+        }
+
+        // init check if dark mode via match media
+        if (!colorMode && is_function(window.matchMedia) && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            colorMode = "dark";
+        }
+
+        // SETUP COLOR MODE BEFORE RENDER
+        this.color_mode = (colorMode);
+        // insert into body
+        // append content to waterfall element : toolbar + preference
+        for (let html of [
+            load(toolbarTemplate, {json: this.profiler}),
+            load(preferenceTemplate, {json: this.profiler}),
+        ]) {
+            this.waterfall.innerHTML += html;
+        }
+
+        this.#locked_dispatchers.add('benchmark');
+        this.#locked_dispatchers.add('json');
+        // unlock for adding
+        this.#allow_locked_change = true;
+        // factory
+        this.add_dispatcher('benchmark', new BenchmarkDispatcher());
+        this.add_dispatcher('json', new JsonDispatcher());
+        this.add_dispatcher('labs', this.#lab_dispatcher);
+
+        /* ---------------------------------------------------------------------
+         * TABS
+         */
+        let biggestTabIndex = 1;
+        select_elements('[tabindex]').forEach((element) => {
+            let tabIndex = parseInt(element.getAttribute('tabindex'));
+            if (tabIndex > biggestTabIndex) {
+                biggestTabIndex = tabIndex;
+            }
+        });
+
+        /* --- TAB MODE --- */
+        this.use_elements('waterfall-action-tab[data-tab]').forEach((el: HTMLElement) => {
+            const target = el.getAttribute('data-tab');
+            // remove tab action if no existing tab or data tab target
+            if (!target || !this.use_element(`waterfall-tab[data-tab="${target}"]`)) {
+                this.remove_dispatcher(target);
+                return;
+            }
+            el.setAttribute('tabindex', ((biggestTabIndex++) + 1).toString());
+        });
+        this.use_elements('waterfall-action, waterfall-color-mode').forEach((el: HTMLElement) => {
+            el.setAttribute('tabindex', ((biggestTabIndex++) + 1).toString());
+        });
+        if (!this.#enable_labs) {
+            this.remove_dispatcher('labs');
+        }
+        let content = this.use_element('waterfall-content');
+        if (!select_element('waterfall-drag-import', content)) {
+            content.append(create_element('waterfall-drag-import', {
+                'text': 'Drop JSON file here to import'
+            }));
+        }
+        // set title for preference
+        this.use_elements('waterfall-action[data-target="waterfall-preference"]')
+            ?.forEach((element: HTMLElement) => {
+                const data_action = element.getAttribute('data-action');
+                if (data_action === 'close') {
+                    element.title = '(Esc) Close Preference';
+                    return;
+                }
+                const ctrl = is_mac ? 'Cmd' : 'Ctrl';
+                element.title = `(${ctrl} + Alt + S) Open Preference`;
+            });
+        this.#allow_locked_change = false;
+        (document.body || document.documentElement).appendChild(this.waterfall);
+
+        /* EVENTS */
+        this.waterfall.addEventListener('click', (e: Event) => this.handleClick(e));
+        this.waterfall.addEventListener('change', (e: Event) => this.handleChange(e));
+        window.addEventListener('resize', (e: Event) => this.handleResize(e));
+        document.addEventListener('keyup', (e: KeyboardEvent) => this.handleKeyup(e));
+        document.addEventListener('keydown', (e: KeyboardEvent) => this.handleKeyDown(e));
+        document.addEventListener('dragover', (e: DragEvent) => this.handleDrag(e));
+        document.addEventListener('dragenter', (e: DragEvent) => this.handleDrag(e));
+        document.addEventListener('dragleave', (e: DragEvent) => this.handleDrag(e));
+        document.addEventListener('drop', (e: DragEvent) => this.handleDrag(e));
+    }
+
+    private handleDrag(e: DragEvent): void {
+        const target = e.target;
+        if (!is_html_element(target) || !this.waterfall.contains(target)) {
+            return;
+        }
+        // check if drop
+        if (e.type === 'drop') {
+            e.preventDefault();
+            if (!e.dataTransfer || !e.dataTransfer.files || !e.dataTransfer.files[0]) {
+                this.waterfall.removeAttribute('data-drag');
+                return;
+            }
+            this.waterfall.removeAttribute('data-drag');
+            this.import_json_file(e.dataTransfer.files[0]);
+            return;
+        }
+        let rect = this.waterfall.getBoundingClientRect();
+        let clientXWaterfall = rect.left;
+        let clientYWaterfall = rect.top;
+        if (!is_html_element(target)
+            || !this.waterfall.contains(target)
+            || e.clientY === 0
+            || e.clientX < clientXWaterfall
+            || e.clientX > clientXWaterfall + this.waterfall.offsetWidth
+            || e.clientY < clientYWaterfall
+            || e.clientY > clientYWaterfall + this.waterfall.offsetHeight
+        ) {
+            this.waterfall.removeAttribute('data-drag');
+            return;
+        }
+        e.stopPropagation();
+        e.preventDefault();
+        this.waterfall.setAttribute('data-drag', 'import');
+    }
+
+    private handleKeyup(e: KeyboardEvent): void {
+        if (e.defaultPrevented) {
+            return;
+        }
+
+        // check if ctrl + alt +s / cmd + alt + s
+        if (e.ctrlKey && e.altKey && e.key === 's') {
+            let waterfall_pref = this.use_element('waterfall-preference');
+            if (!waterfall_pref || waterfall_pref.getAttribute('data-status') === 'active') {
+                return;
+            }
+            // open preference
+            this.use_element('waterfall-action[data-target="waterfall-preference"]')?.click();
+            return;
+        }
+
+        // escape
+        if (!e.key
+            || e.key !== 'Escape'
+            || this.action === 'closed'
+            // no response on input, textarea, select or content editable
+            || e.target instanceof HTMLInputElement
+            || e.target instanceof HTMLTextAreaElement
+            || e.target instanceof HTMLSelectElement
+            || e.target instanceof HTMLElement && e.target.contentEditable === 'true'
+        ) {
+            return;
+        }
+        const $action = this.use_element('waterfall-action[data-action="close"][data-target]');
+        const selector = $action?.getAttribute('data-target');
+        if (!$action) {
+            return;
+        }
+        // check if data action visible
+        if (this.use_elements(`${selector}[data-status="active"]`).length > 0) {
+            $action.click();
+        }
+    }
+
+    private handleKeyDown(e: KeyboardEvent): void {
+        if (e.defaultPrevented) {
+            return;
+        }
+        // check if ctrl + alt +s / cmd + alt + s
+        if (e.ctrlKey && e.altKey && e.key === 's') {
+            return;
+        }
+        // if space or enter
+        let target = this.waterfall.contains(e.target as HTMLElement) ? e.target as HTMLElement : null;
+        if (!target) {
+            return;
+        }
+        // check if it has tabindex
+        if (!target.hasAttribute('tabindex')) {
+            return;
+        }
+        if ([' ', 'Enter'].includes(e.key)) {
+            e.preventDefault();
+            target.click();
+        }
+    }
+
+    private handleResize(_e: Event): void {
+        /* --- RESIZE SET SLIDER TAB ACTION */
+        if (resize_tab_timeout) {
+            clearTimeout(resize_tab_timeout);
+        }
+        this.waterfall.setAttribute('data-resize', 'resize');
+        resize_tab_timeout = setTimeout(() => {
+            const waterfallHeight = this.waterfall.getBoundingClientRect().height;
+            const windowHeight = window.innerHeight;
+            if (waterfallHeight >= windowHeight) {
+                this.action = 'maximize';
+            }
+            this.waterfall.removeAttribute('data-resize');
+            this.reset_slider_bottom();
+        }, 100);
+    }
+
+    private handleClick(e: Event): void {
+        let target = e.target as HTMLElement;
+        if (!is_element(target) || !this.waterfall.contains(target)) {
+            return;
+        }
+        const tagNameIs = (name: string) => target.tagName.toLowerCase() === name;
+
+
+        /* --- COMMAND ACTION --- */
+        const commandElement = target.getAttribute('data-command-action')
+            ? target
+            : target.closest('[data-command-action]');
+        const actionCommandAttribute = is_html_element(commandElement) ? commandElement.getAttribute('data-command-action') : null;
+        if (is_html_element(commandElement) && actionCommandAttribute) {
+            e.preventDefault();
+            switch (actionCommandAttribute) {
+                case 'download':
+                    download_json(this.profiler);
+                    break;
+                case 'import':
+                    let file: HTMLInputElement;
+                    try {
+                        file = create_element('input', {
+                            'type': 'file',
+                            'accept': '.json',
+                            'style': 'display:none'
+                        }) as HTMLInputElement;
+                    } catch (err) {
+                        this.set_message_info('Error creating file input', 'error');
+                    }
+                    file.onchange = () => {
+                        if (!file.files || !file.files[0]) {
+                            return;
+                        }
+                        this.import_json_file(file.files[0]);
+                        file.remove();
+                    };
+                    file.oncancel = () => {
+                        file.remove();
+                        this.set_message_info();
+                    }
+                    file.onerror = () => {
+                        file.remove();
+                        this.set_message_info('Error reading file');
+                    }
+                    this.set_message_info('Importing ...', 'info', false);
+                    file.click();
+                    // to do import
+                    break;
+                case 'minify':
+                case 'prettify':
+                    if (this.tab !== 'json') {
+                        return;
+                    }
+                    const pre = this.use_element(`waterfall-tab[data-tab="${this.tab}"] pre`);
+                    if (!pre) {
+                        return;
+                    }
+                    pre.innerHTML = actionCommandAttribute === 'minify' ? JSON.stringify(this.profiler) : JSON.stringify(this.profiler, null, 4);
+                    this.set_message_info(actionCommandAttribute === 'minify' ? 'Minified successfully' : 'Prettified successfully', 'success');
+                    set_attribute(commandElement, {
+                        'data-command-action': actionCommandAttribute === 'minify' ? 'prettify' : 'minify',
+                        title: actionCommandAttribute === 'minify' ? 'Prettify JSON' : 'Minify JSON'
+                    })
+                    break;
+                case 'restore':
+                    this.reset_profiler();
+                    break;
+                // to do another action: import etc.
+            }
+            return;
+        }
+
+        /* --- ACTION MODE --- */
+        const actionElement = tagNameIs('waterfall-action') ? target : target.closest('waterfall-action[data-action]');
+        if (is_html_element(actionElement) && actionElement.hasAttribute('data-action')) {
+            e.preventDefault();
+            const actionTarget = actionElement.getAttribute('data-target');
+            switch (actionTarget) {
+                case 'waterfall':
+                    e.preventDefault();
+                    this.action = (actionElement.getAttribute('data-action') as ActionTypes);
+                    break;
+                default:
+                    const action = actionElement.getAttribute('data-action');
+                    const status = actionElement.getAttribute('data-status');
+                    const _target = this.use_elements(actionTarget);
+                    if (!_target.length) {
+                        return;
+                    }
+                    e.preventDefault();
+                    _target.forEach((element: HTMLElement) => {
+                        if (action === 'close') {
+                            set_attribute(element, {
+                                'data-status': 'closed'
+                            });
+                            return ''
+                        }
+                        set_attribute(element, {
+                            'data-status': status === 'active' ? null : 'active'
+                        })
+                    });
+                    if (action === 'close') {
+                        this.use_elements(`[data-target="${actionTarget}"]`).forEach((element) => {
+                            set_attribute(element, {
+                                'data-status': null
+                            });
+                        });
+                        return;
+                    }
+                    if (action === 'preference' && this.action === 'closed') {
+                        this.action = 'opened';
+                    }
+                    set_attribute(actionElement, {
+                        'data-status': status === 'active' ? null : 'active'
+                    })
+                    break;
+            }
+        }
+
+        /* --- ACTION MODE --- */
+        const tabElement = tagNameIs('waterfall-action-tab') ? target : target.closest('waterfall-action-tab');
+        if (is_html_element(tabElement)) {
+            e.preventDefault();
+            const tab = tabElement.getAttribute('data-tab') as TabListTypes;
+            if (this.set_tab(tab)) {
+                this.action === 'closed' && this.set_action('opened');
+                this.reset_slider_bottom();
+            }
+        }
+
+        /* --- COLOR MODE --- */
+        const colorElement = tagNameIs('waterfall-color-mode') ? target : target.closest('waterfall-color-mode');
+        if (is_html_element(colorElement)) {
+            e.preventDefault();
+            this.color_mode = colorElement.getAttribute('data-color-mode') as ColorModeTypes;
+        }
+    }
+
+    private handleChange(e: Event): void {
+        const target = e.target;
+        if (!is_html_element(target)) {
+            return;
+        }
+        if (target.closest('waterfall-preference')) {
+            this.preference.handle(e, target);
+            return;
+        }
+    }
 }
 
 Object.freeze(App);
 
 export default new App();
-

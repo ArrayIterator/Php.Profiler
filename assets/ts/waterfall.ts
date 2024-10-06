@@ -1,33 +1,15 @@
 import "../scss/waterfall.scss";
 import {
-    create_element,
-    download_json,
-    get_max_record_file_size,
-    get_max_records,
-    is_element,
     is_html_element,
-    is_numeric_integer, round,
+    is_numeric_integer,
     select_element,
     select_elements,
-    set_attribute, set_max_record_file_size, set_max_records,
-    size_format
+    set_attribute
 } from "./definitions/functions";
-import {ActionTypes, ColorModeTypes} from "./types/types";
-import config, {
-    benchmark_allowed_resize_tag_names,
-    color_mode_list,
-    config_color_mode, config_enable_labs, config_max_records, config_max_size,
-    is_mac
+import {
+    benchmark_allowed_resize_tag_names
 } from "./definitions/config";
 import app from "./definitions/app";
-// @ts-expect-error ignore
-if (!window.arrayiterator_waterfall) {
-    Object.defineProperty(window, 'arrayiterator_waterfall', {
-        value: app,
-        writable: false,
-        enumerable: false,
-    });
-}
 
 let interval = setInterval(() => {
     if (!app.initialized) {
@@ -38,273 +20,10 @@ let interval = setInterval(() => {
         return;
     }
 
-    /* ---------------------------------------------------------------------
-     * SETUP
-     */
-
-    // END
-
-    /* ---------------------------------------------------------------------
-     * COLORS
-     */
-    /* --- COLOR MODE --- */
-    app.use_elements('waterfall-color-mode').forEach((element: HTMLElement) => {
-        element.addEventListener('click', () => {
-            app.color_mode = (element.getAttribute('data-color-mode') as ColorModeTypes);
-        });
-    });
-
-    /* --- RESIZE SET SLIDER TAB ACTION */
-    let resize_tab_timeout: any = null;
-    window.addEventListener('resize', () => {
-        if (resize_tab_timeout) {
-            clearTimeout(resize_tab_timeout);
-        }
-        app.waterfall.setAttribute('data-resize', 'resize');
-        resize_tab_timeout = setTimeout(() => {
-            app.reset_slider_bottom();
-            const waterfallHeight = app.waterfall.getBoundingClientRect().height;
-            const windowHeight = window.innerHeight;
-            if (waterfallHeight >= windowHeight) {
-                app.action = 'maximize';
-            }
-            app.waterfall.removeAttribute('data-resize');
-        }, 100);
-    });
-
     // on resize done
     /* ---------------------------------------------------------------------
      * ACTION HANDLER
      */
-    /* --- ACTION MODE --- */
-    app.use_elements('waterfall-action[data-action]').forEach((el: HTMLElement) => {
-        const target = el.getAttribute('data-target');
-        el.addEventListener('click', (e: Event) => {
-            switch (target) {
-                case 'waterfall':
-                    e.preventDefault();
-                    app.action = (el.getAttribute('data-action') as ActionTypes);
-                    break;
-                default:
-                    const action = el.getAttribute('data-action');
-                    const status = el.getAttribute('data-status');
-                    const _target = app.use_elements(target);
-                    if (!_target.length) {
-                        return;
-                    }
-                    e.preventDefault();
-                    _target.forEach((element) => {
-                        if (action === 'close') {
-                            set_attribute(element, {
-                                'data-status': 'closed'
-                            });
-                            return ''
-                        }
-                        set_attribute(element, {
-                            'data-status': status === 'active' ? null : 'active'
-                        })
-                    });
-                    if (action === 'close') {
-                        app.use_elements(`[data-target="${target}"]`).forEach((element) => {
-                            set_attribute(element, {
-                                'data-status': null
-                            });
-                        });
-                        return;
-                    }
-                    if (action === 'preference' && app.action === 'closed') {
-                        app.action = 'opened';
-                    }
-                    set_attribute(el, {
-                        'data-status': status === 'active' ? null : 'active'
-                    })
-                    break;
-            }
-        });
-    });
-
-    /* --- OPEN PREFERENCE --- */
-    app.use_elements('waterfall-action[data-target="waterfall-preference"]')
-        ?.forEach((element: HTMLElement) => {
-            const data_action = element.getAttribute('data-action');
-            if (data_action === 'close') {
-                element.title = '(Esc) Close Preference';
-                return;
-            }
-            const ctrl = is_mac ? 'Cmd' : 'Ctrl';
-            element.title = `(${ctrl} + Alt + S) Open Preference`;
-        });
-
-    /* --- KEYUP EVENT --- */
-    document.addEventListener('keyup', (e: KeyboardEvent) => {
-        if (e.defaultPrevented) {
-            return;
-        }
-
-        // check if ctrl + alt +s / cmd + alt + s
-        if (e.ctrlKey && e.altKey && e.key === 's') {
-            let waterfall_pref = app.use_element('waterfall-preference');
-            if (!waterfall_pref || waterfall_pref.getAttribute('data-status') === 'active') {
-                return;
-            }
-            // open preference
-            app.use_element('waterfall-action[data-target="waterfall-preference"]')?.click();
-            return;
-        }
-
-        // escape
-        if (!e.key
-            || e.key !== 'Escape'
-            || app.action === 'closed'
-            // no response on input, textarea, select or content editable
-            || e.target instanceof HTMLInputElement
-            || e.target instanceof HTMLTextAreaElement
-            || e.target instanceof HTMLSelectElement
-            || e.target instanceof HTMLElement && e.target.contentEditable === 'true'
-        ) {
-            return;
-        }
-        const $action = app.use_element('waterfall-action[data-action="close"][data-target]');
-        const selector = $action?.getAttribute('data-target');
-        if (!$action) {
-            return;
-        }
-        // check if data action visible
-        if (app.use_elements(`${selector}[data-status="active"]`).length > 0) {
-            $action.click();
-        }
-    });
-
-    /* --- COMMAND ACTION --- */
-    document.addEventListener('click', (e: Event) => {
-        if (e.defaultPrevented) {
-            return;
-        }
-        let target = e.target;
-        if (!is_element(target) || !app.waterfall.contains(target)) {
-            return;
-        }
-        target = target.getAttribute('data-command-action')
-            ? target
-            : target.closest('[data-command-action]');
-        if (!is_html_element(target)) {
-            return;
-        }
-        const action = is_html_element(target) ? target.getAttribute('data-command-action') : null;
-        if (!action) {
-            return;
-        }
-        e.preventDefault();
-        switch (action) {
-            case 'download':
-                download_json(app.profiler);
-                break;
-            case 'import':
-                let file: HTMLInputElement;
-                try {
-                    file = create_element('input', {
-                        'type': 'file',
-                        'accept': '.json',
-                        'style': 'display:none'
-                    }) as HTMLInputElement;
-                } catch (err) {
-                    app.set_message_info('Error creating file input', 'error');
-                }
-                file.onchange = () => {
-                    if (!file.files || !file.files[0]) {
-                        return;
-                    }
-                    app.import_json_file(file.files[0]);
-                    file.remove();
-                };
-                file.oncancel = () => {
-                    file.remove();
-                    app.set_message_info();
-                }
-                file.onerror = () => {
-                    file.remove();
-                    app.set_message_info('Error reading file');
-                }
-                app.set_message_info('Importing ...', 'info', false);
-                file.click();
-                // to do import
-                break;
-            case 'minify':
-            case 'prettify':
-                if (app.tab !== 'json') {
-                    return;
-                }
-                const pre = app.use_element(`waterfall-tab[data-tab="${app.tab}"] pre`);
-                if (!pre) {
-                    return;
-                }
-                pre.innerHTML = action === 'minify' ? JSON.stringify(app.profiler) : JSON.stringify(app.profiler, null, 4);
-                app.set_message_info(action === 'minify' ? 'Minified successfully' : 'Prettified successfully', 'success');
-                set_attribute(target, {
-                    'data-command-action': action === 'minify' ? 'prettify' : 'minify',
-                    title: action === 'minify' ? 'Prettify JSON' : 'Minify JSON'
-                })
-                config.set('prettify', action !== 'minify');
-                break;
-            case 'restore':
-                if (!app.original_profiler) {
-                    return;
-                }
-                app.reset_profiler();
-                app.import_json();
-                app.set_message_info('Restored successfully', 'success');
-                break;
-            // to do another action: import etc.
-        }
-    });
-
-    /* --- DRAG ACTION --- */
-    const drag_entering = (e: DragEvent) => {
-        const target = e.target;
-        let clientXWaterfall = app.waterfall.getBoundingClientRect().left;
-        let clientYWaterfall = app.waterfall.getBoundingClientRect().top;
-        if (!is_html_element(target)
-            || !app.waterfall.contains(target)
-            || e.clientY === 0
-            || e.clientX < clientXWaterfall
-            || e.clientX > clientXWaterfall + app.waterfall.offsetWidth
-            || e.clientY < clientYWaterfall
-            || e.clientY > clientYWaterfall + app.waterfall.offsetHeight
-        ) {
-            app.waterfall.removeAttribute('data-drag');
-            return;
-        }
-        e.stopPropagation();
-        e.preventDefault();
-        app.waterfall.setAttribute('data-drag', 'import');
-    }
-    document.addEventListener('dragover', drag_entering);
-    document.addEventListener('dragenter', drag_entering);
-    document.addEventListener('dragleave', drag_entering);
-    document.addEventListener('drop', (e: DragEvent) => {
-        const target = e.target;
-        if (!is_html_element(target) || !app.waterfall.contains(target)) {
-            return;
-        }
-        e.preventDefault();
-        if (!e.dataTransfer || !e.dataTransfer.files || !e.dataTransfer.files[0]) {
-            app.waterfall.removeAttribute('data-drag');
-            return;
-        }
-        app.waterfall.removeAttribute('data-drag');
-        app.import_json_file(e.dataTransfer.files[0]);
-    });
-
-    /* --- RESTORE ACTION STATUS --- */
-    document.addEventListener('waterfall:imported', () => {
-        app.set_max_records(get_max_records());
-        app.set_max_size(get_max_record_file_size());
-        app.use_elements('waterfall-action[data-action="restore"]').forEach((restore_action) => {
-            set_attribute(restore_action, {
-                'data-status': app.original_profiler ? 'active' : null
-            })
-        });
-    });
 
     /* --- FILTER --- */
     const filters = app.use_elements('waterfall-filter-list waterfall-action[data-filter]');
@@ -490,55 +209,9 @@ let interval = setInterval(() => {
         // stop resizing
         currentResizeTarget = null;
     });
-
-    /* ---------------------------------------------------------------------
-     * PREFERENCES
-     */
-    /* --- PREFERENCES --- */
-    app.use_element('waterfall-preference')?.addEventListener('change', (e) => {
-        let target = e.target;
-        if (!(target instanceof HTMLInputElement) && !(target instanceof HTMLSelectElement)) {
-            return;
-        }
-        let name = target.name;
-        if (!name) {
-            return;
-        }
-        switch (name) {
-            case 'color_mode':
-                let mode = target.value as ColorModeTypes|"auto";
-                if (!color_mode_list.includes(mode as ColorModeTypes)) {
-                    mode = 'auto';
-                }
-                app.set_color(mode, true);
-                break;
-            case 'maximum_records':
-                let value = parseInt(target.value);
-                if (is_numeric_integer(value)) {
-                    app.set_max_records(value);
-                }
-
-                config.set(config_max_records, get_max_records());
-                target.value = get_max_records().toString();
-                break;
-            case 'maximum_size':
-                let size = parseInt(target.value);
-                if (is_numeric_integer(size)) {
-                    app.set_max_size(size);
-                }
-                config.set(config_max_size, size);
-                target.value = round(get_max_record_file_size() / 1024 / 1024, 0).toString()
-                break;
-            case 'enable_labs':
-                let enable = target.value;
-                app.set_enable_labs(enable === '1');
-                break;
-        }
-    });
     /* ---------------------------------------------------------------------
      * RUNNER
      */
     // SET TAB AFTER APPENDED (to calculate width)
     app.tab = app.tab;
-
 }, 50);

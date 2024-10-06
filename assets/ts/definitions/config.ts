@@ -175,6 +175,20 @@ ConfigObject.prototype.remove = function remove(key: ConfigParams) {
     if (!is_string(key) || !this.has(key)) {
         return;
     }
+    switch (key) {
+        case config_max_records:
+            set_max_records(max_benchmark_records);
+            break;
+        case config_max_size:
+            set_max_record_file_size(max_benchmark_file_size);
+            break;
+        case config_prettify:
+            set_prettify(true);
+            break;
+        case config_enable_labs:
+            configurations[key] = false;
+            break;
+    }
     delete configurations[key];
     localStorage.setItem(setting_storage_name, JSON.stringify(configurations));
 }

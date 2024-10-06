@@ -85,7 +85,7 @@ const config = {
                 parallel : true,
                 terserOptions : {
                     compress : {
-                        drop_console : isProduction
+                        drop_console : false, // isProduction
                     },
                     output : {
                         comments : !isProduction,

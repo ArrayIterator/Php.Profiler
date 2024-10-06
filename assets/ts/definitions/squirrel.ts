@@ -33,6 +33,7 @@ export const load = (template: string, data: {
     data['default_maximum_benchmark_size'] = max_benchmark_file_size;
     data['enable_labs'] = Config.get(config_enable_labs) === true;
     data['color_mode'] = Config.get(config_color_mode);
+    data['prettify'] = Config.get('prettify') === true;
     return Squirrel.render(template, data, {useWith: true});
 }
 

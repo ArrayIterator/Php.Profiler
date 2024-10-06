@@ -1,4 +1,4 @@
-import {JsonProfiler, RecordProfiler} from "../types/types";
+import {AppInterface, JsonProfiler, RecordProfiler} from "../types/types";
 import {
     create_element,
     dispatch_event, icon,
@@ -12,7 +12,7 @@ import {severity_list} from "../definitions/config";
 import AbstractDispatcher from "./AbstractDispatcher";
 
 export default class BenchmarkDispatcher extends AbstractDispatcher {
-    dispatch({profiler, tab_element}: { profiler: JsonProfiler; tab_element: HTMLElement }): any {
+    dispatch({profiler, tab_element, app}: { profiler: JsonProfiler; tab_element: HTMLElement, app: AppInterface }): any {
         let {
             content,
             waterfall
@@ -111,7 +111,7 @@ export default class BenchmarkDispatcher extends AbstractDispatcher {
             }),
         ]).finally(() => {
             console.debug('Benchmark records loaded');
-            dispatch_event('waterfall:benchmark:dispatched', {profiler, tab_element});
+            dispatch_event('waterfall:benchmark:dispatched', {profiler, tab_element}, app.waterfall);
         }).catch((err) => {
             console.error('Benchmark records failed to load', err);
         });

@@ -8,37 +8,53 @@
         </waterfall-actions>
     </waterfall-header>
     <waterfall-preference-content>
-        <waterfall-item>
-            <label>
-                <waterfall-name>Maximum Records</waterfall-name>
-                <input type="number" aria-label="Maximum Records" placeholder="Maximum Records" name="maximum_records" min="500" max="{{ default_maximum_benchmark_records }}" value="{{ maximum_benchmark_records }}">
-            </label>
-        </waterfall-item>
-        <waterfall-item>
-            <label>
-                <waterfall-name>Maximum Size (MB)</waterfall-name>
-                <input type="number" aria-label="Maximum Size" placeholder="Maximum Size (MB)" name="maximum_size" min="1" max="{{ (default_maximum_benchmark_size/1024/1024)|round(0) }}" value="{{ (maximum_benchmark_size/1024/1024)|round(0) }}">
-            </label>
-        </waterfall-item>
-        <waterfall-item>
-            <label>
-                <waterfall-name>Color Mode</waterfall-name>
-                <select name="color_mode">
-                    <option value="default" {{ (color_mode !== 'dark' && color_mode !== 'light') ? 'selected' : '' }}>Default</option>
-                    <option value="dark" {{ color_mode == 'dark' ? 'selected' : '' }}>Dark</option>
-                    <option value="light" {{ color_mode == 'light' ? 'selected' : '' }}>Light</option>
-                </select>
-            </label>
-        </waterfall-item>
-        <waterfall-item>
-            <label>
-                <waterfall-name>Enable Labs</waterfall-name>
-                <select name="enable_labs">
-                    <option value="1" {{ enable_labs == true ? 'selected' : '' }}>Enable</option>
-                    <option value="0" {{ enable_labs == false ? 'selected' : '' }}>Disable</option>
-                </select>
-            </label>
-        </waterfall-item>
-
+        <waterfall-preference-tab-chooser>
+            <waterfall-preference-tab data-tab="toolbar" data-status="active">
+                <waterfall-icon>
+                    {{ "bug" | icon | safe }}
+                </waterfall-icon>
+            <waterfall-name>Toolbar</waterfall-name>
+            </waterfall-preference-tab>
+        </waterfall-preference-tab-chooser>
+        <waterfall-preference-tabs data-tab="toolbar" data-status="active">
+            <waterfall-preference-header>
+                Toolbar
+                <waterfall-preference-reset class="reset">reset</waterfall-preference-reset>
+            </waterfall-preference-header>
+            <waterfall-items>
+            <waterfall-item>
+                <label>
+                    <waterfall-name>Maximum Records</waterfall-name>
+                    <input type="number" aria-label="Maximum Records" placeholder="Maximum Records" name="maximum_benchmark_records" min="500" max="{{ default_maximum_benchmark_records }}" value="{{ maximum_benchmark_records }}">
+                </label>
+                    <label>
+                        <waterfall-name>Maximum Size (MB)</waterfall-name>
+                        <input type="number" aria-label="Maximum Size" placeholder="Maximum Size (MB)" name="maximum_benchmark_size" min="1" max="{{ (default_maximum_benchmark_size/1024/1024)|round(0) }}" value="{{ (maximum_benchmark_size/1024/1024)|round(0) }}">
+                    </label>
+                    <label>
+                        <waterfall-name>Color Mode</waterfall-name>
+                        <select name="color_mode">
+                            <option value="default" {{ (color_mode !== 'dark' && color_mode !== 'light') ? 'selected' : '' }}>Auto</option>
+                            <option value="dark" {{ color_mode == 'dark' ? 'selected' : '' }}>Dark</option>
+                            <option value="light" {{ color_mode == 'light' ? 'selected' : '' }}>Light</option>
+                        </select>
+                    </label>
+                    <label>
+                        <waterfall-name>Enable Labs</waterfall-name>
+                        <select name="enable_labs">
+                            <option value="1" {{ enable_labs == true ? 'selected' : '' }}>Enable</option>
+                            <option value="0" {{ enable_labs == false ? 'selected' : '' }}>Disable</option>
+                        </select>
+                    </label>
+                    <label>
+                        <waterfall-name>Prettify Source</waterfall-name>
+                        <select name="prettify">
+                            <option value="1" {{ prettify == true ? 'selected' : '' }}>Enable</option>
+                            <option value="0" {{ prettify == false ? 'selected' : '' }}>Disable</option>
+                        </select>
+                    </label>
+                </waterfall-item>
+            </waterfall-items>
+        </waterfall-preference-tabs>
     </waterfall-preference-content>
 </waterfall-preference>

@@ -1,4 +1,4 @@
-import {JsonProfiler} from "../types/types";
+import {AppInterface, JsonProfiler} from "../types/types";
 import jsonTemplate from "../templates/tabs/json.sqrl";
 import {
     create_element,
@@ -12,9 +12,10 @@ import AbstractDispatcher from "./AbstractDispatcher";
 
 export default class JsonDispatcher extends AbstractDispatcher {
     dispatch({
-         profiler,
-         tab_element
-     }: { profiler: JsonProfiler; tab_element: HTMLElement }): any {
+        profiler,
+        tab_element,
+        app
+     }: { profiler: JsonProfiler; tab_element: HTMLElement, app: AppInterface }): any {
         const {
             content
         } = this.withWaterfallContent({
@@ -30,7 +31,7 @@ export default class JsonDispatcher extends AbstractDispatcher {
             'data-command-action': should_prettify ? 'minify' : 'prettify',
             title: should_prettify ? 'Minify JSON' : 'Prettify JSON'
         });
-        dispatch_event('waterfall:json:dispatched', {profiler, tab_element});
+        dispatch_event('waterfall:json:dispatched', {profiler, tab_element}, app.waterfall);
     }
 
     icon(): SVGElement | null {

@@ -22,8 +22,119 @@ waterfall-preference {
         opacity: 1;
         height: calc(100% - var(--waterfall-header-height));
     }
-}
 
+    waterfall-preference-content {
+        & {
+            @include flex-row;
+            flex: 1;
+            margin: 0;
+            padding: 0;
+            overflow: auto;
+        }
+
+        select,
+        [type="text"],
+        [type="number"] {
+            width: 100px;
+            border-radius: 3px;
+            padding: 3px;
+            margin: 0;
+            font-size: var(--waterfall-font-size);
+            color: var(--waterfall-color-base);
+            border: 1px solid var(--waterfall-header-border-color);
+            background-color: var(--waterfall-bg-color-base);
+
+            &:focus {
+                outline: none;
+                border-color: var(--waterfall-header-tab-active-color);
+            }
+        }
+    }
+
+    waterfall-preference-tabs {
+        @include flex-column;
+        flex: 0 1 100%;
+        margin-bottom: var(--waterfall-font-size);
+        padding: var(--waterfall-font-size);
+        padding-top: 0;
+        overflow: hidden;
+    }
+
+    waterfall-preference-header {
+        @include flex-row-center;
+        font-size: calc(var(--waterfall-font-size) * 1.5);
+        position: relative;
+        background-color: var(--waterfall-bg-color-base);
+        z-index: 100;
+        padding: calc(var(--waterfall-font-size) / 2) 0 ;
+        border-bottom: 1px solid var(--waterfall-header-border-color);
+        margin-bottom: var(--waterfall-font-size);
+        flex: 1;
+        justify-content: space-between;
+        waterfall-preference-reset {
+            @include flex-column-center;
+            align-self: flex-end;
+            font-size: calc(var(--waterfall-font-size) * .8);
+            padding: calc(var(--waterfall-font-size) / 2) var(--waterfall-font-size);
+            cursor: pointer;
+            background-color: var(--waterfall-bg-color-error);
+            color: var(--waterfall-bg-color-error-text);
+        }
+    }
+    waterfall-preference-tab-chooser {
+        & {
+            @include flex-column;
+            flex: 1 1 200px;
+            overflow: auto;
+            padding: calc(var(--waterfall-font-size) / 2) 0;
+        }
+
+        waterfall-preference-tab {
+            & {
+                @include flex-row;
+                padding: calc(var(--waterfall-font-size) / 4) var(--waterfall-font-size);
+                cursor: default;
+            }
+            > waterfall-icon {
+                margin-right: calc(var(--waterfall-font-size) / 2);
+            }
+            &:hover {
+                color: var(--waterfall-action-hover-text-color);
+            }
+
+            &[data-status="active"] {
+                background-color: var(--waterfall-preference-active-bg-color);
+                color: var(--waterfall-preference-active-text-color);
+                border-top-right-radius: var(--waterfall-font-size);
+                border-bottom-right-radius: var(--waterfall-font-size);
+            }
+        }
+    }
+    waterfall-items {
+        @include flex-row;
+        flex: 0 1 100%;
+        flex-wrap: wrap;
+        overflow: auto;
+        waterfall-item {
+            @include flex-column;
+            flex: 0 1 calc(100% / 4);
+            label {
+                & {
+                    display: block;
+                    width: 100%;
+                    padding: calc(var(--waterfall-font-size) / 3) 0;
+                }
+                input[type="number"],
+                input[type="text"],
+                select {
+                    width: 250px;
+                    padding: 5px;
+                    font-size: calc(var(--waterfall-font-size) * .8);
+                }
+            }
+        }
+    }
+}
 // -----------------------------------------------------------------
 // END PREFERENCE
 // -----------------------------------------------------------------

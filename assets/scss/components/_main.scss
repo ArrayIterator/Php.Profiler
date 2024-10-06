@@ -627,26 +627,3 @@ waterfall-filters {
 // -----------------------------------------------------------------
 // END FILTERS
 // -----------------------------------------------------------------
-
-waterfall-preference-content {
-    & {
-        padding: 0 var(--waterfall-font-size);
-    }
-
-    select,
-    [type="text"],
-    [type="number"] {
-        width: 100px;
-        border-radius: 3px;
-        padding: 3px;
-        margin: 0;
-        font-size: var(--waterfall-font-size);
-        color: var(--waterfall-color-base);
-        border: 1px solid var(--waterfall-header-border-color);
-        background-color: var(--waterfall-bg-color-base);
-        &:focus {
-            outline: none;
-            border-color: var(--waterfall-header-tab-active-color);
-        }
-    }
-}
