@@ -1036,16 +1036,21 @@ class App implements AppInterface {
             return;
         }
 
+        const isInput = e.target instanceof HTMLInputElement;
         // escape
         if (!e.key
             || e.key !== 'Escape'
             || this.action === 'closed'
             // no response on input, textarea, select or content editable
-            || e.target instanceof HTMLInputElement
+            || isInput
             || e.target instanceof HTMLTextAreaElement
             || e.target instanceof HTMLSelectElement
             || e.target instanceof HTMLElement && e.target.contentEditable === 'true'
         ) {
+            if (e.key === 'Escape' && isInput) {
+                e.target.value = '';
+                e.target.dispatchEvent(new Event('change', {bubbles: true}));
+            }
             return;
         }
         const $action = this.use_element('waterfall-action[data-action="close"][data-target]');

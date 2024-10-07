@@ -2,7 +2,8 @@ import {AppInterface, JsonProfiler, RecordProfiler} from "../types/types";
 import {
     create_element,
     dispatch_event,
-    icon, is_function,
+    icon,
+    is_function,
     is_numeric_integer,
     is_string,
     select_element
@@ -12,9 +13,12 @@ import recordTemplate from "../templates/tabs/content/record.sqrl";
 import {severity_list} from "../definitions/config";
 import AbstractDispatcher from "./AbstractDispatcher";
 import {load} from "../definitions/squirrel";
+import * as sea from "node:sea";
 
+// max batch append for records
+const max_batch_append = 50;
 let timeoutBenchmark: any = null;
-let resolveCallback : Function = null;
+let resolveCallback: Function = null;
 const clear_timeout = (e: CustomEvent) => {
     if (!timeoutBenchmark || e.detail?.tab === 'benchmark') {
         return;
@@ -26,6 +30,7 @@ const clear_timeout = (e: CustomEvent) => {
         resolveCallback = null;
     }
 }
+
 export default class BenchmarkDispatcher extends AbstractDispatcher {
     constructor() {
         super();
@@ -57,7 +62,6 @@ export default class BenchmarkDispatcher extends AbstractDispatcher {
         if (!waterfall || !content) {
             return;
         }
-
 
         content.innerHTML = `<waterfall-record-wait>Please Wait</waterfall-record-wait>`;
         const filterElement = select_element(
@@ -134,53 +138,97 @@ export default class BenchmarkDispatcher extends AbstractDispatcher {
                 content.replaceChildren('');
                 let records: Array<any> = [];
                 let empty = true;
+                let inc = 0;
+                const push = (record: RecordProfiler) => {
+                    empty = false;
+                    let html = create_html(record);
+                    // @ts-expect-error ignore
+                    html['layer'] = inc++;
+                    records.push(html);
+                }
+                let searchId = null;
+                let searchByName = null;
+                let searchByGroup = null;
+                if (search) {
+                    let match = search.match(/\s*id:\s*([0-9]+)?\s*$/);
+                    if (match) {
+                        searchId = match[1].trim();
+                    }
+                    let matchName = search.match(/\s*name:\s*((?!(?:group|id|name):).+)?\s*$/);
+                    if (matchName) {
+                        searchByName = matchName[1].replace(/\s+/g, '').trim().toLowerCase();
+                    }
+                    let matchGroup = search.match(/\s*group:\s*((?!(?:group|id|name):).+)?\s*$/);
+                    if (matchGroup) {
+                        searchByGroup = matchGroup[1].replace(/\s+/g, '').trim().toLowerCase();
+                    }
+                }
                 for (let id in profiler.records) {
                     const record = profiler.records[id];
                     if (!record) {
                         continue;
                     }
                     if (!needFiltering) {
-                        empty = false;
-                        records.push(create_html(record));
+                        push(record);
                         continue;
                     }
-                    let name = record.name;
-                    let group = profiler.groups[record.group];
+                    let name = record.name.replace(/\s+/g, '').toLowerCase()
+                    let group = profiler.groups[record.group].replace(/\s+/g, '').toLowerCase();
                     let searchName = search
-                        ? (name + ' ' + group).replace(/\s+/g, '').toLowerCase()
+                        ? (name + ' ' + group)
                         : null;
                     if (useAggregatorFilter && !recordFilters[id]
                         || (severityList && !severityList.includes(record.severity))
-                        || (searchName && record.name.toLowerCase().replace(/\s+/g, '').includes(search) === false)
                     ) {
                         continue;
                     }
-                    empty = false;
-                    records.push(create_html(record));
+
+                    if (searchId !== null) {
+                        if (searchId !== '' && !id.includes(searchId)) {
+                            continue;
+                        }
+                    }
+                    if (searchByName !== null) {
+                        if (searchByName !== '' && !name.includes(searchByName)) {
+                            continue;
+                        }
+                    }
+                    if (searchByGroup !== null) {
+                        if (searchByGroup !== '' && !group.includes(searchByGroup)) {
+                            continue;
+                        }
+                    }
+                    if (searchId === null && searchByName === null && searchByGroup === null) {
+                        if (search && !searchName.includes(search)) {
+                            continue;
+                        }
+                    }
+                    push(record);
                 }
                 if (empty) {
                     content.innerHTML = `<waterfall-record-empty>No records found</waterfall-record-empty>`;
                     resolve(null);
                 } else {
                     resolveCallback = resolve;
-                    // prevent blocking
                     const append = () => {
-                        let record = records.shift();
-                        if (!record) {
+                        let appends = [];
+                        while (records.length > 0 && appends.length < max_batch_append) {
+                            appends.push(records.shift());
+                        }
+                        if (appends.length === 0) {
                             resolveCallback = null;
+                            console.debug('Benchmark records loaded');
+                            dispatch_event('waterfall:benchmark:dispatched', {profiler, tab_element}, app.waterfall);
                             resolve(null);
                             return;
                         }
-                        content.append(record);
+                        content.append(...appends);
                         timeoutBenchmark = setTimeout(append, 0);
                     }
                     append();
                 }
             }),
-        ]).finally(() => {
-            console.debug('Benchmark records loaded');
-            dispatch_event('waterfall:benchmark:dispatched', {profiler, tab_element}, app.waterfall);
-        }).catch((err) => {
+        ]).catch((err) => {
             console.error('Benchmark records failed to load', err);
         });
     }
