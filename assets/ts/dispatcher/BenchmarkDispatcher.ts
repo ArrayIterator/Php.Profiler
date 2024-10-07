@@ -1,18 +1,49 @@
 import {AppInterface, JsonProfiler, RecordProfiler} from "../types/types";
 import {
     create_element,
-    dispatch_event, icon,
+    dispatch_event,
+    icon, is_function,
     is_numeric_integer,
     is_string,
-    select_element,
-    select_elements
+    select_element
 } from "../definitions/functions";
 import recordsTemplate from "../templates/tabs/records.sqrl";
+import recordTemplate from "../templates/tabs/content/record.sqrl";
 import {severity_list} from "../definitions/config";
 import AbstractDispatcher from "./AbstractDispatcher";
+import {load} from "../definitions/squirrel";
 
+let timeoutBenchmark: any = null;
+let resolveCallback : Function = null;
+const clear_timeout = (e: CustomEvent) => {
+    if (!timeoutBenchmark || e.detail?.tab === 'benchmark') {
+        return;
+    }
+    clearTimeout(timeoutBenchmark);
+    timeoutBenchmark = null;
+    if (is_function(resolveCallback)) {
+        resolveCallback();
+        resolveCallback = null;
+    }
+}
 export default class BenchmarkDispatcher extends AbstractDispatcher {
-    dispatch({profiler, tab_element, app}: { profiler: JsonProfiler; tab_element: HTMLElement, app: AppInterface }): any {
+    constructor() {
+        super();
+    }
+
+    dispatch({profiler, tab_element, app}: {
+        profiler: JsonProfiler;
+        tab_element: HTMLElement,
+        app: AppInterface
+    }): any {
+        if (timeoutBenchmark) {
+            clearTimeout(timeoutBenchmark);
+            timeoutBenchmark = null;
+            if (resolveCallback) {
+                resolveCallback();
+                resolveCallback = null;
+            }
+        }
         let {
             content,
             waterfall
@@ -22,9 +53,13 @@ export default class BenchmarkDispatcher extends AbstractDispatcher {
             expect: 'benchmark',
             template: recordsTemplate
         });
-        if (!waterfall) {
+
+        if (!waterfall || !content) {
             return;
         }
+
+
+        content.innerHTML = `<waterfall-record-wait>Please Wait</waterfall-record-wait>`;
         const filterElement = select_element(
             'waterfall-filter-list waterfall-action[data-filter][data-status="active"]',
             waterfall
@@ -33,22 +68,23 @@ export default class BenchmarkDispatcher extends AbstractDispatcher {
         const searchInput = searchElement?.querySelector('input'); // search input
         let severity: string = filterElement?.getAttribute('data-filter');
         severity = severity === undefined ? null : severity;
-        let aggregators = select_element('waterfall-aggregators', waterfall);
+        let aggregatorsElement = select_element('waterfall-aggregators', waterfall);
         let search: string = searchInput?.value.trim();
-        if (!aggregators && searchElement) {
-            aggregators = create_element('waterfall-aggregators');
-            searchElement.append(aggregators);
+        if (!aggregatorsElement && searchElement) {
+            aggregatorsElement = create_element('waterfall-aggregators');
+            searchElement.append(aggregatorsElement);
         }
-        if (!filterElement) {
-            return;
-        }
+
+        // add event listener clear
+        waterfall.removeEventListener('waterfall:tab', clear_timeout);
+        waterfall.addEventListener('waterfall:tab', clear_timeout);
         const recordFilters: {
             [p: number]: boolean
         } = {};
         const aggregatorList: {
             [p: number]: boolean
         } = {};
-        aggregators?.querySelectorAll('record-aggregator[data-status="active"]').forEach((el: HTMLElement) => {
+        aggregatorsElement?.querySelectorAll('record-aggregator[data-status="active"]').forEach((el: HTMLElement) => {
             let id: string | number = el.getAttribute('data-id');
             if (!is_numeric_integer(id)) {
                 return;
@@ -63,10 +99,10 @@ export default class BenchmarkDispatcher extends AbstractDispatcher {
                 recordFilters[record] = true;
             })
         });
-        aggregators?.replaceChildren('');
+        aggregatorsElement?.replaceChildren('');
         Promise.all([
             new Promise((resolve) => {
-                if (aggregators) {
+                if (aggregatorsElement) {
                     for (let id in profiler.aggregators) {
                         const aggregator = profiler.aggregators[id];
                         if (!aggregator) {
@@ -79,7 +115,7 @@ export default class BenchmarkDispatcher extends AbstractDispatcher {
                             html: aggregator.name + " (" + aggregator.records.length + ")",
                             'data-status': aggregatorList[Number(id)] ? 'active' : null
                         });
-                        aggregators.append(element);
+                        aggregatorsElement.append(element);
                     }
                 }
                 resolve(null);
@@ -89,25 +125,57 @@ export default class BenchmarkDispatcher extends AbstractDispatcher {
                 severityList = Array.isArray(severityList) ? severityList : null;
                 search = is_string(search) ? search.trim().toLowerCase().replace(/\s+/g, '') : null;
                 const useAggregatorFilter = filterElement && Object.keys(recordFilters).length > 0;
-                if (useAggregatorFilter || search || severityList) {
-                    console.debug('Filtering records:', {useAggregatorFilter, search, severityList});
-                    select_elements('record-item', content).forEach((element) => {
-                        const id = element.getAttribute('data-id') as unknown as number;
-                        let record: RecordProfiler = id ? profiler.records[id] : null;
-                        if (!record
-                            || useAggregatorFilter && !recordFilters[id]
-                            || (severityList && !severityList.includes(record.severity))
-                            || (search && element.textContent.replace(/\s+/g, '').toLowerCase().includes(search) === false)
-                        ) {
-                            element.remove();
+                const create_html = (record: RecordProfiler): HTMLElement => {
+                    return create_element('div', {
+                        html: load(recordTemplate, {json: profiler, record})
+                    }).children[0] as HTMLElement;
+                }
+                const needFiltering = useAggregatorFilter || search || severityList;
+                content.replaceChildren('');
+                let records: Array<any> = [];
+                let empty = true;
+                for (let id in profiler.records) {
+                    const record = profiler.records[id];
+                    if (!record) {
+                        continue;
+                    }
+                    if (!needFiltering) {
+                        empty = false;
+                        records.push(create_html(record));
+                        continue;
+                    }
+                    let name = record.name;
+                    let group = profiler.groups[record.group];
+                    let searchName = search
+                        ? (name + ' ' + group).replace(/\s+/g, '').toLowerCase()
+                        : null;
+                    if (useAggregatorFilter && !recordFilters[id]
+                        || (severityList && !severityList.includes(record.severity))
+                        || (searchName && record.name.toLowerCase().replace(/\s+/g, '').includes(search) === false)
+                    ) {
+                        continue;
+                    }
+                    empty = false;
+                    records.push(create_html(record));
+                }
+                if (empty) {
+                    content.innerHTML = `<waterfall-record-empty>No records found</waterfall-record-empty>`;
+                    resolve(null);
+                } else {
+                    resolveCallback = resolve;
+                    // prevent blocking
+                    const append = () => {
+                        let record = records.shift();
+                        if (!record) {
+                            resolveCallback = null;
+                            resolve(null);
                             return;
                         }
-                    });
+                        content.append(record);
+                        timeoutBenchmark = setTimeout(append, 0);
+                    }
+                    append();
                 }
-                if (content.innerHTML.trim() === '') {
-                    content.innerHTML = `<waterfall-record-empty>No records found</waterfall-record-empty>`;
-                }
-                resolve(null);
             }),
         ]).finally(() => {
             console.debug('Benchmark records loaded');

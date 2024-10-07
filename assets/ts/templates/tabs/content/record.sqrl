@@ -1,0 +1,9 @@
+<record-item data-id="{{ record.id }}" data-severity="{{ record.severity }}">
+    <record-item-name title="{{ record.name }}">{{ record.name }}</record-item-name>
+    <record-item-group title="Group: {{ json.groups[record.group] }}">{{ json.groups[record.group] }}</record-item-group>
+    <record-item-memory title="Memory Usage: {{ record.memory.used_memory|sizeFormat }}">{{ record.memory.used_memory|sizeFormat }}</record-item-memory>
+    <record-item-duration title="Duration: {{ record.timing.duration| humanTime }}">{{ record.timing.duration| humanTime }}</record-item-duration>
+    <record-item-waterfall title="Duration {{ record.timing.duration| humanTime }} - take {{ record.timing.percentage|round }}%">
+        <record-bar data-item="bar" data-width="{{ record.timing.percentage|round }}" data-left="{{ record.left }}" style="--waterfall-record-bar-width:{{ record.timing.percentage|round }}%;--waterfall-record-bar-left:{{ record.left }}%">&nbsp;</record-bar>
+    </record-item-waterfall>
+</record-item>

@@ -136,7 +136,7 @@ window.arrayiterator_waterfall.set_max_records(5000);
   - [ ] Metadata of JSON
   - [ ] RAM Usage & Limit (chart using pie chart from highchart.js)
   - [ ] Additional Information
-  - [ ] Chart for benchmark (multiple chart type)
+  - [x] Chart for benchmark
 
 #### Source Tab
 
@@ -153,6 +153,10 @@ window.arrayiterator_waterfall.set_max_records(5000);
 - Icon & SVG using [HeroIcons](https://heroicons.com/)
 - Compiled JS using [Webpack](https://webpack.js.org/) & [TypeScript](https://www.typescriptlang.org/)
 - Compiled CSS using [Sass](https://sass-lang.com/)
+
+## NOTE
+
+Rendering benchmark & source code using looping og `setTimeout` to make sure the rendering is not blocking the main thread.
 
 ## LICENSE
 

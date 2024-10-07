@@ -96,6 +96,10 @@ waterfall-search {
 
 waterfall {
     &[data-tab-mode="benchmark"] {
+        & {
+            --waterfall-record-bar-width: 0;
+            --waterfall-record-bar-left: 0;
+        }
         waterfall-container {
             > waterfall-header {
                 flex: 0 0 auto;
@@ -133,6 +137,8 @@ waterfall {
                 @include flex-row;
                 font-size: calc(var(--waterfall-font-size) * .85);
                 background-color: var(--waterfall-bg-color-base);
+                height: calc(var(--waterfall-font-size) * 1.75);
+                flex: 0 0 calc(var(--waterfall-font-size) * 1.75);
             }
 
             &:not(waterfall-tab-header):nth-child(odd) {
@@ -203,14 +209,28 @@ waterfall {
         }
 
         record-bar {
+            @keyframes record-benchmark-lw {
+                from {
+                    width: 0;
+                    left: 0;
+                    min-width: 0;
+                }
+                to {
+                    width: var(--waterfall-record-bar-width);
+                    left: var(--waterfall-record-bar-left);
+                    min-width: .25%;
+                }
+            }
             & {
                 display: flex;
                 min-width: .25%;
+                width: var(--waterfall-record-bar-width);
+                left: var(--waterfall-record-bar-left);
                 border-radius: var(--waterfall-font-size);
                 position: relative;
                 height: calc(var(--waterfall-font-size) / 2);
-                width: 100%;
                 background-color: var(--waterfall-bg-color-info);
+                animation: record-benchmark-lw .2s linear;
             }
         }
 
@@ -277,6 +297,7 @@ waterfall {
         }
     }
 
+    waterfall-record-wait,
     waterfall-record-empty {
         @include flex-column-center;
         flex: 0 0 100%;

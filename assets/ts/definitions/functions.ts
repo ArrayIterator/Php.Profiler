@@ -122,6 +122,16 @@ export const size_format = (size: number, precision?: number): string => {
     return round(size, precision) + ' ' + units[i];
 }
 
+export const escape_attribute = (s: string) => {
+    return ('' + s) /* Forces the conversion to string. */
+        .replace(/\u00A0/g, '&nbsp;') /* Useful but not absolutely necessary. */
+        .replace(/&/g, '&amp;') /* These 5 replacements protect from HTML/XML. */
+        .replace(/'/g, '&apos;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
 /**
  * Set attribute to element
  */

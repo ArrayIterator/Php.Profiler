@@ -77,7 +77,7 @@ export default class Preference {
                 break;
             case config_max_size:
                 if (is_numeric_integer(value)) {
-                    this.app.set_max_size(parseInt(value));
+                    this.app.set_max_size(parseInt(value) * 1024 * 1024);
                 }
                 target.value = round(get_max_record_file_size() / 1024 / 1024, 0).toString()
                 break;
@@ -86,7 +86,7 @@ export default class Preference {
                 break;
             case config_prettify:
                 let isPrettify = value === '1';
-                config.set(config_prettify, isPrettify);
+                this.app.set_prefer_prettify(isPrettify);
                 if (this.app.tab === 'json') {
                     const tab = this.app.use_element(`waterfall-tab[data-tab="${this.app.tab}"]`);
                     if (!tab) {

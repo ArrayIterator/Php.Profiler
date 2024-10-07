@@ -2,7 +2,7 @@ import {
     create_element,
     dispatch_event,
     download_json,
-    filter_profiler,
+    filter_profiler, get_max_record_file_size,
     get_max_records,
     icon,
     is_element,
@@ -20,7 +20,7 @@ import {
     size_format
 } from "./functions";
 import Config, {
-    action_list,
+    action_list, benchmark_allowed_resize_tag_names,
     color_mode_list,
     config_action_mode,
     config_color_mode,
@@ -117,6 +117,12 @@ class App implements AppInterface {
      * @private
      */
     #lab_dispatcher: LabDispatcher = new LabDispatcher();
+
+    /**
+     * Prettify
+     * @private
+     */
+    #prettify: boolean = Config.get('prettify') !== false;
 
     constructor() {
         /**
@@ -226,6 +232,19 @@ class App implements AppInterface {
 
     has_dispatcher(name: string) {
         return is_string(name) && this.#dispatchers.has(name);
+    }
+
+    set prettify(value: boolean) {
+        set_prettify(value);
+        this.#prettify = value;
+    }
+    set_prettify(value: boolean): any {
+        this.prettify = value;
+    }
+
+    set_prefer_prettify(value: boolean) {
+        this.prettify = value;
+        Config.set('prettify', value);
     }
 
     add_dispatcher(name: string, dispatcher: AbstractDispatcher) {
@@ -368,8 +387,8 @@ class App implements AppInterface {
     set_max_size(size: number): void {
         set_max_record_file_size(size);
         this.use_elements('waterfall-max-size')
-            .forEach((el) => el.replaceChildren(size_format(size)));
-        Config.set(config_max_size, size);
+            .forEach((el) => el.replaceChildren(size_format(get_max_record_file_size())));
+        Config.set(config_max_size, get_max_record_file_size() / 1024 / 1024);
     }
 
     /**
@@ -383,6 +402,7 @@ class App implements AppInterface {
                 this.#allow_change_color_mode = true;
                 Config.set(config_color_mode, mode);
             }
+            dispatch_event('waterfall:color', {color: mode}, this.waterfall);
         } else if (mode === 'auto') {
             if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
                 this.waterfall.setAttribute('data-color-mode', 'dark');
@@ -391,6 +411,7 @@ class App implements AppInterface {
             }
             Config.remove(config_color_mode);
             this.#allow_change_color_mode = false;
+            dispatch_event('waterfall:color', {color: mode}, this.waterfall);
         }
     }
 
@@ -413,6 +434,7 @@ class App implements AppInterface {
             if (['maximize', 'closed'].includes(mode)) {
                 this.waterfall.style.removeProperty('height');
             }
+            dispatch_event('waterfall:action', {action: mode}, this.waterfall);
         }
     }
 
@@ -460,6 +482,7 @@ class App implements AppInterface {
                 tab = mode;
                 this.waterfall.setAttribute('data-tab-mode', mode);
                 this.reset_slider_bottom(action_tab);
+                this.set_message_info();
                 if (tab !== previous_tab || initial_tab) {
                     initial_tab = false;
                     this.dispatch({
@@ -468,7 +491,8 @@ class App implements AppInterface {
                         active_tab: active_tab,
                         tabs: tabs as NodeListOf<HTMLElement>,
                         actions: actions as NodeListOf<HTMLElement>,
-                    })
+                    });
+                    dispatch_event('waterfall:tab', {tab: mode}, this.waterfall);
                 }
             }
         }
@@ -505,8 +529,8 @@ class App implements AppInterface {
         });
     }
 
-    set_message_info(msg: string = null, type: string = 'info', remove: boolean = true): void {
-        const messages = this.use_elements('waterfall-message');
+    set_message_info(msg: string = null, type: string = 'info', remove: boolean = true, element?:HTMLElement): void {
+        const messages = select_elements('waterfall-message', element||this.waterfall);
         if (timeout_message) {
             clearTimeout(timeout_message);
             timeout_message = null;
@@ -621,8 +645,9 @@ class App implements AppInterface {
         let reader = new FileReader();
         reader.onload = (event) => {
             try {
-                this.import_json(filter_profiler(event.target.result as string));
+                let json = filter_profiler(event.target.result as string);
                 this.set_message_info('Imported successfully', 'success');
+                this.import_json(json);
             } catch (err) {
                 this.set_message_info(err.message);
             }
@@ -812,6 +837,7 @@ class App implements AppInterface {
         this.#allow_locked_change = false;
         (document.body || document.documentElement).appendChild(this.waterfall);
 
+        this.resizeWaterfall(); // add resize handler for waterfall
         /* EVENTS */
         this.waterfall.addEventListener('click', (e: Event) => this.handleClick(e));
         this.waterfall.addEventListener('change', (e: Event) => this.handleChange(e));
@@ -822,6 +848,141 @@ class App implements AppInterface {
         document.addEventListener('dragenter', (e: DragEvent) => this.handleDrag(e));
         document.addEventListener('dragleave', (e: DragEvent) => this.handleDrag(e));
         document.addEventListener('drop', (e: DragEvent) => this.handleDrag(e));
+    }
+
+    private resizeWaterfall() : void {
+
+        /* ---------------------------------------------------------------------
+         * RESIZE HANDLER
+         */
+        /* --- VERTICAL RESIZE --- */
+        let
+            waterfallHeight: number,
+            waterfallIsResizing = false,
+            waterfallInitial = false,
+            waterfallHeaderHeight = this.use_element('waterfall-bar')?.getBoundingClientRect().height || 30;
+        // ON POINTING TO WATERFALL
+        this
+            .waterfall
+            .addEventListener("mousedown", (e: MouseEvent) => {
+                waterfallInitial = e.offsetY <= 3 && e.offsetY >= -3
+                    && is_html_element(e.target)
+                    && this.waterfall.getAttribute('data-action-mode') === 'opened';
+            });
+        // ON MOUSE DRAGGING
+        document.addEventListener('mousemove', (e: MouseEvent) => {
+            if (e.defaultPrevented) {
+                return;
+            }
+            // we don't want to do anything if we aren't resizing.
+            if (!waterfallInitial) {
+                return;
+            }
+            this.waterfall.setAttribute('data-resize', 'resize');
+            let bounding = this.waterfall.getBoundingClientRect();
+            waterfallHeight = bounding.height - (e.clientY - bounding.top);
+            if (waterfallHeight < waterfallHeaderHeight) {
+                return;
+            }
+            waterfallIsResizing = true;
+            this.waterfall.style.setProperty('height', waterfallHeight + 'px');
+            dispatch_event('waterfall:resizeY', {
+                height: waterfallHeight
+            }, this.waterfall);
+        });
+
+        // ON MOUSE RELEASE
+        document.addEventListener('mouseup', () => {
+            this.waterfall.removeAttribute('data-resize');
+            if (waterfallInitial && waterfallIsResizing) {
+                if (waterfallHeight <= waterfallHeaderHeight) {
+                    this.action = ('closed');
+                } else if (window.innerHeight <= waterfallHeight) {
+                    this.action = ('maximize');
+                }
+                dispatch_event('waterfall:resized', {}, this.waterfall);
+            }
+            // stop resizing
+            waterfallIsResizing = false;
+            waterfallInitial = false;
+        });
+        /* --- HORIZONTAL RESIZE --- */
+        let currentResizeTarget: HTMLElement = null,
+            selectorXResize = Object.keys(benchmark_allowed_resize_tag_names).join(',');
+        const benchmarkTab = this.use_element('waterfall-tab[data-tab="benchmark"]');
+        benchmarkTab
+            ?.addEventListener("mousedown", (e: MouseEvent) => {
+                currentResizeTarget = null;
+                if (e.defaultPrevented) {
+                    return;
+                }
+                const target = e.target as HTMLElement;
+                if (!is_html_element(target)) {
+                    return;
+                }
+                if (!benchmark_allowed_resize_tag_names[target.tagName.toLowerCase()]) {
+                    return;
+                }
+                let width = target.getBoundingClientRect().width;
+                if (e.offsetX <= (width + 4) && e.offsetX >= (width - 4)) {
+                    currentResizeTarget = target;
+                    this.waterfall.setAttribute('data-resize', 'resize-x');
+                }
+            });
+        // resize horizontal width (x) with of div by set style set property by attr
+        document.addEventListener('mousemove', (e) => {
+            if (e.defaultPrevented) {
+                return;
+            }
+            // we don't want to do anything if we aren't resizing.
+            if (!currentResizeTarget) {
+                return;
+            }
+            const tagName = currentResizeTarget.tagName.toLowerCase();
+            const attr = benchmark_allowed_resize_tag_names[tagName];
+            // calculate all data-tem width exclude current
+            let allWidth = 50;
+            select_elements(selectorXResize, currentResizeTarget.parentElement)
+                .forEach((element: HTMLDivElement) => {
+                    if (element === currentResizeTarget) {
+                        return;
+                    }
+                    if (!benchmark_allowed_resize_tag_names[element.tagName.toLowerCase()]) {
+                        return;
+                    }
+                    let width = element.getBoundingClientRect().width;
+                    if (width < 50) {
+                        width = 50;
+                    }
+                    allWidth += width;
+                });
+            let benchmarkWidth = Math.min(
+                document.body.getBoundingClientRect().width,
+                benchmarkTab.getBoundingClientRect().width
+            );
+            // maximum width
+            let maxWidth = benchmarkWidth - allWidth;
+            let newWidth = e.clientX - currentResizeTarget.getBoundingClientRect().left;
+            if (newWidth < 50) {
+                newWidth = 50;
+            }
+            if (maxWidth < newWidth) {
+                newWidth = maxWidth;
+            }
+            // console.log(e.clientX, maxWidth);
+            this.waterfall.style.setProperty(attr, newWidth + 'px');
+            dispatch_event('waterfall:resizeX', {
+                width: newWidth
+            }, this.waterfall);
+        });
+        document.addEventListener('mouseup', () => {
+            this.waterfall.removeAttribute('data-resize');
+            if (currentResizeTarget) {
+                dispatch_event('waterfall:resized', {}, this.waterfall);
+            }
+            // stop resizing
+            currentResizeTarget = null;
+        });
     }
 
     private handleDrag(e: DragEvent): void {
@@ -992,16 +1153,12 @@ class App implements AppInterface {
                     if (this.tab !== 'json') {
                         return;
                     }
-                    const pre = this.use_element(`waterfall-tab[data-tab="${this.tab}"] pre`);
-                    if (!pre) {
-                        return;
-                    }
-                    pre.innerHTML = actionCommandAttribute === 'minify' ? JSON.stringify(this.profiler) : JSON.stringify(this.profiler, null, 4);
-                    this.set_message_info(actionCommandAttribute === 'minify' ? 'Minified successfully' : 'Prettified successfully', 'success');
-                    set_attribute(commandElement, {
-                        'data-command-action': actionCommandAttribute === 'minify' ? 'prettify' : 'minify',
-                        title: actionCommandAttribute === 'minify' ? 'Prettify JSON' : 'Minify JSON'
-                    })
+                    this.set_prettify(actionCommandAttribute === 'prettify');
+                    this.#dispatchers.get('json')?.dispatch({
+                        profiler: this.profiler,
+                        tab_element: this.use_element('waterfall-tab[data-tab="json"]'),
+                        app: this
+                    });
                     break;
                 case 'restore':
                     this.reset_profiler();

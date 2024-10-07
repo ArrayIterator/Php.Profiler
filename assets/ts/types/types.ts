@@ -94,6 +94,11 @@ export interface AppInterface {
     add_dispatcher(name: string, dispatcher: AbstractDispatcher): any;
 
     remove_dispatcher(name: string): any;
+    set prettify(value: boolean);
+
+    set_prettify(value: boolean): any;
+
+    set_prefer_prettify(value: boolean): any;
 
     /**
      * Get the waterfall element
@@ -215,7 +220,7 @@ export interface AppInterface {
     /**
      * Set the slider bottom
      */
-    set_message_info(msg: string, type: string, remove: boolean): void;
+    set_message_info(msg: string, type: string, remove: boolean, element?:HTMLElement): void;
 
     // LABS
     set_enable_labs(enable: boolean): any;

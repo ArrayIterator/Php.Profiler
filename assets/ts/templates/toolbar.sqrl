@@ -7,9 +7,9 @@
                     <waterfall-name>{{ "clock" | icon | safe }}</waterfall-name>
                     <waterfall-value>{{ json['system_wide'].duration | humanTime }}</waterfall-value>
                 </waterfall-item-duration >
-                <waterfall-item-memory title="Peak Memory: {{ json.system_wide.peak_memory | sizeFormat }}">
+                <waterfall-item-memory title="Peak Memory: {{ json.system_wide.real_peak_memory | sizeFormat }}">
                     <waterfall-name>{{ "cpu" | icon | safe }}</waterfall-name>
-                    <waterfall-value>{{ json.system_wide.peak_memory | sizeFormat }}</waterfall-value>
+                    <waterfall-value>{{ json.system_wide.real_peak_memory | sizeFormat }}</waterfall-value>
                 </waterfall-item-memory >
             </waterfall-info>
             <waterfall-action-tabs>
